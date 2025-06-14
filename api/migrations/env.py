@@ -5,11 +5,10 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from api.src.config import settings
+from src.config import settings
 
 # необходимо импортировать модели для того чтобы создались все таблицы
-from api.src.models import Base
-
+from src.models import Base, User
 
 config = context.config
 
