@@ -2,8 +2,15 @@ from sqlalchemy import select, insert, update, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from typing import TypeVar, Generic, Type
 
-class SQLAlchemyRepository:
+from .models import Base
+
+
+ModelType = TypeVar("ModelType", bound=Base)
+
+
+class SQLAlchemyRepository(Generic[ModelType]):
     model = None
 
     def __init__(self, session: AsyncSession):
@@ -12,9 +19,9 @@ class SQLAlchemyRepository:
         if self.model is None:
             raise ValueError("Class attr 'model' is None! Must be an ORM model!")
 
-    async def find_one_or_none(self, **filter_by):
+    async def find_one_or_none(self, *filter, **filter_by) -> ModelType | None:
         try:
-            stmt = select(self.model).filter_by(**filter_by)
+            stmt = select(self.model).filter(*filter).filter_by(**filter_by)
             result = await self._session.execute(stmt)
             return result.scalars().one_or_none()
         except SQLAlchemyError as exp:
@@ -30,9 +37,9 @@ class SQLAlchemyRepository:
             # log
             raise
 
-    async def insert(self, new_obj: dict):
+    async def insert(self, data: dict):
         try:
-            stmt = insert(self.model).values(**new_obj).returning(self.model)
+            stmt = insert(self.model).values(**data).returning(self.model)
             result = await self._session.execute(stmt)
             await self._session.commit()
             return result.scalars().one()

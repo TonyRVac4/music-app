@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: str
     DB_NAME: str
+    JWT_KEY: str
+    JWT_ALGORITHM: str
+    TOKEN_TYPE_FILED_NAME: str
+    ACCESS_TOKEN_NAME: str
+    REFRESH_TOKEN_NAME: str
+    ACCESS_TOKEN_EXPIRES_MIN: int
+    REFRESH_TOKEN_EXPIRES_MIN: int
 
     @property
     def asyncpg_db_url(self) -> str:
