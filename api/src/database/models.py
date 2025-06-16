@@ -5,7 +5,6 @@ from typing import Annotated
 
 from sqlalchemy import VARCHAR, DateTime, BOOLEAN, Enum, text
 from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
-# from sqlalchemy.schema import ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 
@@ -38,18 +37,20 @@ class Base(DeclarativeBase):
     )
 
 
-class User(Base):
+class UserModel(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid_pk]
-    name: Mapped[str] = mapped_column(VARCHAR(32), unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(VARCHAR(32), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(VARCHAR(64), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(VARCHAR(64), nullable=False)
     is_active: Mapped[bool] = mapped_column(BOOLEAN, server_default=text("TRUE"), nullable=False)
+    is_email_verified: Mapped[bool] = mapped_column(BOOLEAN, server_default=text("FALSE"), nullable=False)
     role: Mapped[Roles] = mapped_column(
         Enum(
             Roles,
-            name="roles",  # native_enum=False указывает не создавать Enum на уровне СУБД (хранится как varchar)
+            name="roles",
+            # native_enum=False указывает не создавать Enum на уровне СУБД (хранится как varchar)
         ),
         server_default=text("'USER'::roles"),
         nullable=False,
