@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
 from .schemas import UserCreate, UserInfoOut, TokenInfoOut
@@ -18,9 +18,36 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 )
 async def register(
         new_user: UserCreate,
+        background_tasks: BackgroundTasks,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> UserInfoOut:
-    return await user_service.register_new_user(new_user)
+    result = await user_service.register_new_user(user=new_user)
+    await user_service.send_verification_code(result.email, background_tasks)
+    return result
+
+
+@router.get(
+    "/resend_email_verification_code/",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def resend_email_verification_code(
+        email: str,
+        background_tasks: BackgroundTasks,
+        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+) -> dict:
+    await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await user_service.send_verification_code(email, background_tasks)
+    return {"message": "Verification email has been resent."}
+
+
+@router.get("/verify_email/")
+async def verify_email(
+        email: str, code: str,
+        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+) -> dict:
+    await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await user_service.confirm_verification_code(email=email, code=code)
+    return {"message": "Email successfully verified."}
 
 
 @router.post("/login/", response_model=TokenInfoOut)
