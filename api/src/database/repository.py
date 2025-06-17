@@ -28,7 +28,7 @@ class SQLAlchemyRepository(Generic[ModelType]):
             # log
             raise
 
-    async def find_all(self, *filter, offset: int = 0, limit: int = 100, **filter_by):
+    async def find_all(self, *filter, offset: int = 0, limit: int = 100, **filter_by) -> list[ModelType]:
         try:
             stmt = select(self.model).filter(*filter).filter_by(**filter_by).offset(offset).limit(limit)
             result = await self._session.execute(stmt)
@@ -37,7 +37,7 @@ class SQLAlchemyRepository(Generic[ModelType]):
             # log
             raise
 
-    async def insert(self, data: dict):
+    async def insert(self, data: dict) -> ModelType:
         try:
             stmt = insert(self.model).values(**data).returning(self.model)
             result = await self._session.execute(stmt)
@@ -47,7 +47,7 @@ class SQLAlchemyRepository(Generic[ModelType]):
             # log
             raise
 
-    async def insert_bulk(self, data: list[dict]):
+    async def insert_bulk(self, data: list[dict]) -> list[ModelType]:
         try:
             stmt = insert(self.model).returning(self.model)
             result = await self._session.execute(
@@ -59,12 +59,12 @@ class SQLAlchemyRepository(Generic[ModelType]):
             # log
             raise
 
-    async def update(self, *where, new_obj: dict):
+    async def update(self, *where, **values) -> list[ModelType]:
         try:
             stmt = (
                 update(self.model)
                 .where(*where)
-                .values(**new_obj)
+                .values(**values)
                 .returning(self.model)
             )
             result = await self._session.execute(stmt)
@@ -74,23 +74,7 @@ class SQLAlchemyRepository(Generic[ModelType]):
             # log
             raise
 
-    async def update_bulk(self, *where, data: list[dict]):
-        try:
-            stmt = (
-                update(self.model)
-                .where(*where)
-                .returning(self.model)
-            )
-            result = await self._session.execute(
-                stmt, data,
-            )
-            await self._session.commit()
-            return result.scalars().all()
-        except SQLAlchemyError as exp:
-            # log
-            raise
-
-    async def delete(self, *filter, **filter_by):
+    async def delete(self, *filter, **filter_by) -> list[ModelType]:
         try:
             stmt = (
                 delete(self.model)
