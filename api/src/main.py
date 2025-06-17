@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 
 from auth.router import router as auth_router
+from config import settings
 
 app = FastAPI(
     title="Music app API",
@@ -14,4 +15,4 @@ app.include_router(auth_router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=5555, host="0.0.0.0", reload=True)
+    uvicorn.run("main:app", port=settings.APP_PORT, host=settings.APP_HOST, reload=True)

@@ -8,7 +8,7 @@ from alembic import context
 from src.config import settings
 
 # необходимо импортировать модели для того чтобы создались все таблицы
-from src.database.models import Base, User
+from src.database.models import Base, UserModel
 
 config = context.config
 
