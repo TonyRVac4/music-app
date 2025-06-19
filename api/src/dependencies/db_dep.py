@@ -1,7 +1,11 @@
 from typing import AsyncGenerator
 
+from redis import asyncio as redis
+from redis.asyncio import Redis
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.src.config import settings
 from api.src.database.config import async_session
 
 
@@ -36,3 +40,8 @@ async def get_async_session_without_commit() -> AsyncGenerator[AsyncSession, Non
             raise
         else:
             await session.close()
+
+
+async def get_async_redis_client() -> AsyncGenerator[Redis, None]:
+    with redis.from_url(settings.redis_db_url) as client:
+        yield client

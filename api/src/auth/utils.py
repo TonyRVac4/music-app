@@ -4,15 +4,12 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 
 from jose import jwt
-import redis.asyncio as redis
 from passlib.context import CryptContext
 
 from api.src.config import settings
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-async_redis_client = redis.from_url(settings.redis_db_url)
 
 
 def get_password_hash(password: str) -> str:
@@ -21,6 +18,10 @@ def get_password_hash(password: str) -> str:
 
 def verify_password_hash(password: str, hashed_password: str) -> bool:
     return pwd_context.verify(password, hashed_password)
+
+
+def decode_jwt(token: str) -> dict:
+    return jwt.decode(token, key=settings.JWT_KEY, algorithms=[settings.JWT_ALGORITHM])
 
 
 def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
