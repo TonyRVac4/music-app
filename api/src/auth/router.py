@@ -1,56 +1,65 @@
+import datetime
+from math import ceil
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
-from .schemas import UserCreate, UserInfoOut, TokenInfoOut
-from .dependencies import get_auth_service_dependency, get_user_service_dependency
+from .schemas import UserCreate, BaseUserInfo, TokenInfoOut, TokenData
+from .dependencies import (get_auth_service_dependency, get_user_service_dependency,
+                           get_current_auth_user_by_access, get_current_refresh_token_payload)
 from .service import UserService, AuthService
+from .utils import decode_jwt, check_permissions
+from .exceptions import HTTPExceptionInvalidToken
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post(
-    "/register/",
+    "/register",
     status_code=status.HTTP_201_CREATED,
-    response_model=UserInfoOut,
+    response_model=BaseUserInfo,
 )
 async def register(
         new_user: UserCreate,
         background_tasks: BackgroundTasks,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-) -> UserInfoOut:
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
+) -> BaseUserInfo:
     result = await user_service.register_new_user(user=new_user)
-    await user_service.send_verification_code(result.email, background_tasks)
+    await auth_service.send_verification_code(result.email, background_tasks)
     return result
 
 
 @router.get(
-    "/resend_email_verification_code/",
+    "/resend-email-verification-code",
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def resend_email_verification_code(
         email: str,
         background_tasks: BackgroundTasks,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> dict:
+    # todo ограничить кол-во запросов
     await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await user_service.send_verification_code(email, background_tasks)
+    await auth_service.send_verification_code(email, background_tasks)
     return {"message": "Verification email has been resent."}
 
 
-@router.get("/verify_email/")
+@router.get("/verify-email")
 async def verify_email(
         email: str, code: str,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> dict:
     await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await user_service.confirm_verification_code(email=email, code=code)
+    await auth_service.confirm_verification_code(email=email, code=code)
     return {"message": "Email successfully verified."}
 
 
-@router.post("/login/", response_model=TokenInfoOut)
+@router.post("/login", response_model=TokenInfoOut)
 async def login(
         credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
@@ -58,7 +67,70 @@ async def login(
     user = await auth_service.authenticate_user(
         credentials.username, credentials.password
     )
-    access_token = await auth_service.create_access_token(user)
-    refresh_token = await auth_service.create_refresh_token(user)
+
+    access_token: str = await auth_service.create_access_token(user.id)
+    refresh_token: str = await auth_service.create_refresh_token(user.id)
+
+    refresh_token_decoded: dict = decode_jwt(refresh_token)
+    await auth_service.add_refresh_token(
+        user_id=refresh_token_decoded["sub"],
+        jti=refresh_token_decoded["jti"],
+        exp_data_stamp=refresh_token_decoded["exp"],
+    )
 
     return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+        payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
+):
+    if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
+        raise HTTPExceptionInvalidToken
+
+    await auth_service.delete_refresh_token(
+        user_id=payload.sub, jti=payload.jti,
+    )
+    return {"message": "You logged out!"}
+
+
+@router.post("/refresh-token", response_model=TokenInfoOut)
+async def refresh_token(
+        payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
+) -> TokenInfoOut:
+    # todo добавить проверку активности акаунта пользователя
+    await auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
+    if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
+        raise HTTPExceptionInvalidToken
+
+    access_token: str = await auth_service.create_access_token(payload.sub)
+    # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
+    refresh_token: str = await auth_service.create_refresh_token(
+        sub=payload.sub,
+        expires_in_min=ceil((payload.exp - datetime.datetime.now().timestamp()) / 60),
+    )
+    await auth_service.delete_refresh_token(
+        user_id=payload.sub,
+        jti=payload.jti
+    )
+    await auth_service.add_refresh_token(
+        user_id=payload.sub,
+        jti=decode_jwt(refresh_token)["jti"],
+        exp_data_stamp=payload.exp,
+    )
+    return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+@router.post("/terminate-all-user-sessions", status_code=status.HTTP_200_OK)
+async def terminate_all_user_sessions(
+        user_id: str,
+        current_user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)],
+        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
+        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+):
+    target_user: BaseUserInfo = await user_service.get_user_by_id(user_id=user_id)
+    check_permissions(current_user, target_user)
+    await auth_service.delete_all_refresh_tokens_by_user_id(user_id)
+    return {"message": "You logged out from all devices!"}
