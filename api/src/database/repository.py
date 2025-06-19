@@ -41,7 +41,6 @@ class SQLAlchemyRepository(Generic[ModelType]):
         try:
             stmt = insert(self.model).values(**data).returning(self.model)
             result = await self._session.execute(stmt)
-            await self._session.commit()
             return result.scalars().one()
         except SQLAlchemyError as exp:
             # log
@@ -53,7 +52,6 @@ class SQLAlchemyRepository(Generic[ModelType]):
             result = await self._session.execute(
                 stmt, data,
             )
-            await self._session.commit()
             return result.scalars().all()
         except SQLAlchemyError as exp:
             # log
@@ -68,7 +66,6 @@ class SQLAlchemyRepository(Generic[ModelType]):
                 .returning(self.model)
             )
             result = await self._session.execute(stmt)
-            await self._session.commit()
             return result.scalars().all()
         except SQLAlchemyError as exp:
             # log
@@ -83,7 +80,6 @@ class SQLAlchemyRepository(Generic[ModelType]):
                 .returning(self.model)
             )
             result = await self._session.execute(stmt)
-            await self._session.commit()
             return result.scalars().all()
         except SQLAlchemyError as exp:
             # log
