@@ -1,5 +1,4 @@
-from fastapi import HTTPException
-from starlette import status
+from fastapi import HTTPException, status
 
 
 HTTPExceptionInvalidToken = HTTPException(
@@ -19,10 +18,19 @@ HTTPExceptionEmailNotFound = HTTPException(
     detail="Email not found!",
 )
 
+HTTPExceptionUserNotFound = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="User not found!",
+)
 
 HTTPExceptionInactiveUser = HTTPException(
     status_code=status.HTTP_403_FORBIDDEN,
     detail="User account is inactive!",
+)
+
+HTTPExceptionNoPermission = HTTPException(
+    status_code=status.HTTP_403_FORBIDDEN,
+    detail="You do not have permission to use this operation!",
 )
 
 HTTPExceptionUserAlreadyExists = HTTPException(
