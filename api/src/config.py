@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     def redis_db_url(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB_NUM}?decode_responses=True"
 
+    def get_verification_link(self, email, code) -> str:
+        return "http://{host}:{port}/api/v1/auth/verify-email?email={email}&code={code}".format(
+            host=self.APP_HOST,
+            port=self.APP_PORT,
+            email=email,
+            code=code,
+        )
+
     model_config = SettingsConfigDict(
         env_file=env_file_path,
     )

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, UUID4
+from pydantic import BaseModel, Field, EmailStr, UUID4, ConfigDict
 
 from api.src.database.models import Roles
 
@@ -9,7 +9,9 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=10, max_length=64)
 
 
-class UserInfoOut(BaseModel):
+class BaseUserInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID4
     username: str
     email: EmailStr
@@ -20,3 +22,13 @@ class TokenInfoOut(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "Bearer"
+
+
+class TokenData(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    sub: str
+    jti: str
+    iat: int
+    exp: int
+    type: str

@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
 
+from .schemas import BaseUserInfo
+from .exceptions import HTTPExceptionNoPermission
+
+from api.src.database.models import Roles
 from api.src.config import settings
 
 
@@ -25,13 +29,13 @@ def decode_jwt(token: str) -> dict:
 
 
 def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
-    time_now = datetime.utcnow()
+    time_now = datetime.now()
     expiration_time = time_now + timedelta(minutes=expires_minutes)
 
     payload.update(
         {
-            "exp": expiration_time,
-            "iat": time_now,
+            "exp": round(expiration_time.timestamp()),
+            "iat": round(time_now.timestamp()),
             "jti": str(uuid4()),
             settings.TOKEN_TYPE_FILED_NAME: token_type
         }
@@ -51,3 +55,20 @@ def send_email(to_email: str, message: str) -> None:
 
         m.set_payload(message)
         smtpObj.sendmail(from_addr=settings.APP_EMAIL, to_addrs=to_email, msg=m.as_string())
+
+
+def validate_token_type(token_type: str, target_type: str) -> bool:
+    if target_type == token_type:
+        return True
+    return False
+
+
+def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> None:
+    # над собой делают все что хотят
+    if current_user.id != target_user.id:
+        if current_user.role == Roles.USER:
+            raise HTTPExceptionNoPermission
+        if current_user.role == Roles.ADMIN and target_user.role != Roles.USER:
+            raise HTTPExceptionNoPermission
+        if current_user.role == Roles.SUPER_ADMIN and target_user.role == Roles.SUPER_ADMIN:
+            raise HTTPExceptionNoPermission

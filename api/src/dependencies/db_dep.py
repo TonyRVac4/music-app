@@ -43,5 +43,5 @@ async def get_async_session_without_commit() -> AsyncGenerator[AsyncSession, Non
 
 
 async def get_async_redis_client() -> AsyncGenerator[Redis, None]:
-    with redis.from_url(settings.redis_db_url) as client:
+    async with redis.from_url(settings.redis_db_url) as client:
         yield client
