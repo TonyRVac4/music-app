@@ -12,7 +12,6 @@ from .service import UserService, AuthService
 from .utils import decode_jwt, check_permissions
 from .exceptions import HTTPExceptionInvalidToken
 
-
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
@@ -32,7 +31,7 @@ async def register(
     return result
 
 
-@router.get(
+@router.post(
     "/resend-email-verification-code",
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -41,25 +40,29 @@ async def resend_email_verification_code(
         background_tasks: BackgroundTasks,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> dict:
-    # todo ограничить кол-во запросов
+) -> None:
     await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
     await auth_service.send_verification_code(email, background_tasks)
-    return {"message": "Verification email has been resent."}
 
 
-@router.get("/verify-email")
+@router.get(
+    "/verify-email",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def verify_email(
         email: str, code: str,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> dict:
+) -> None:
     await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
     await auth_service.confirm_verification_code(email=email, code=code)
-    return {"message": "Email successfully verified."}
 
 
-@router.post("/login", response_model=TokenInfoOut)
+@router.post(
+    "/login",
+    status_code=status.HTTP_200_OK,
+    response_model=TokenInfoOut,
+)
 async def login(
         credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
@@ -81,21 +84,29 @@ async def login(
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
-@router.post("/logout", status_code=status.HTTP_200_OK)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Logs out user using refresh token.",
+)
 async def logout(
         payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-):
+) -> None:
     if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
         raise HTTPExceptionInvalidToken
 
     await auth_service.delete_refresh_token(
         user_id=payload.sub, jti=payload.jti,
     )
-    return {"message": "You logged out!"}
 
 
-@router.post("/refresh-token", response_model=TokenInfoOut)
+@router.post(
+    "/refresh-token",
+    status_code=status.HTTP_200_OK,
+    response_model=TokenInfoOut,
+    description="Refreshes tokens using refresh token.",
+)
 async def refresh_token(
         payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
@@ -125,14 +136,17 @@ async def refresh_token(
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
-@router.post("/terminate-all-user-sessions", status_code=status.HTTP_200_OK)
+@router.post(
+    "/terminate-all-user-sessions",
+    status_code=status.HTTP_204_NO_CONTENT,
+    description="Logs out user from all devices using access token. Can be used by admins.",
+)
 async def terminate_all_user_sessions(
         user_id: str,
         current_user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-):
+) -> None:
     target_user: BaseUserInfo = await user_service.get_user_by_id(user_id=user_id)
     check_permissions(current_user, target_user)
     await auth_service.delete_all_refresh_tokens_by_user_id(user_id)
-    return {"message": "You logged out from all devices!"}

@@ -71,7 +71,9 @@ get_current_auth_user_by_access = get_auth_dependency_from_token_type(settings.A
 get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(settings.REFRESH_TOKEN_NAME)
 
 
-async def get_current_active_user(user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)]) -> BaseUserInfo:
+async def get_current_active_user(
+        user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)]
+) -> BaseUserInfo:
     if not user.is_active:
         raise HTTPExceptionInactiveUser
     return user
