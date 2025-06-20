@@ -123,3 +123,8 @@ class UserService:
             raise HTTPExceptionEmailNotFound
         if user.is_email_verified:
             raise HTTPExceptionEmailAlreadyVerified
+
+    async def check_user_is_active(self, user_id: str) -> None:
+        user: BaseUserInfo = await self.get_user_by_id(user_id)
+        if not user.is_active:
+            raise HTTPExceptionInactiveUser

@@ -15,6 +15,7 @@ class BaseUserInfo(BaseModel):
     id: UUID4
     username: str
     email: EmailStr
+    is_active: bool
     role: Roles
 
 

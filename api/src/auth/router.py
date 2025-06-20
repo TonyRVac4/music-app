@@ -99,8 +99,10 @@ async def logout(
 async def refresh_token(
         payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
+        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> TokenInfoOut:
-    # todo добавить проверку активности акаунта пользователя
+    await user_service.check_user_is_active(payload.sub)
+
     await auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
     if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
         raise HTTPExceptionInvalidToken
