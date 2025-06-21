@@ -1,3 +1,5 @@
+import logging
+
 from uuid import uuid4
 from datetime import datetime
 from sqlalchemy import or_
@@ -8,9 +10,13 @@ from .schemas import UserCreate, BaseUserInfo
 from .utils import get_password_hash, verify_password_hash, create_jwt, send_email
 from .exceptions import (HTTPExceptionInactiveUser, HTTPExceptionInvalidLoginCredentials,
                          HTTPExceptionUserAlreadyExists, HTTPExceptionInvalidEmailVerification,
-                         HTTPExceptionEmailNotFound, HTTPExceptionEmailAlreadyVerified, HTTPExceptionUserNotFound)
+                         HTTPExceptionEmailNotFound, HTTPExceptionEmailAlreadyVerified,
+                         HTTPExceptionUserNotFound, HTTPExceptionInvalidToken)
 
 from api.src.config import settings
+
+
+logger = logging.getLogger("my_app")
 
 
 class AuthService:
@@ -27,10 +33,16 @@ class AuthService:
             )
         )
         if not user:
+            logger.warning(f"Authentication: Invalid login! '{email}' does not exist!")
             raise HTTPExceptionInvalidLoginCredentials
         if not verify_password_hash(password, user.password):
+            logger.warning(f"Authentication: Invalid password! | '{email}'")
             raise HTTPExceptionInvalidLoginCredentials
-        if not user.is_active or not user.is_email_verified:
+        if not user.is_active:
+            logger.warning(f"Authentication: Inactive account! | '{email}'")
+            raise HTTPExceptionInactiveUser
+        if not user.is_email_verified:
+            logger.warning(f"Authentication: Email is not verified! | '{email}'")
             raise HTTPExceptionInactiveUser
 
         return BaseUserInfo.model_validate(user)
@@ -55,19 +67,26 @@ class AuthService:
 
         url = settings.get_verification_link(email, code)
         background_task.add_task(send_email, email, url)
+        logger.info(f"Email verification: Code sent! Email: '{email}'")
 
     async def confirm_verification_code(self, email: str, code: str) -> None:
         redis_code = await self._redis_client.get(email)
         if not redis_code or code != redis_code:
+            logger.warning(f"Email verification: Invalid verification code! | '{email}'")
             raise HTTPExceptionInvalidEmailVerification
 
         await self._repository.update(self._model.email == email, is_email_verified=True)
         await self._redis_client.delete(email)
+        logger.info(f"Email verification: Code confirmed, account activated. | '{email}'")
 
-    async def check_refresh_token_exist(self, user_id: str, jti: str) -> bool:
-        if await self._redis_client.zscore(user_id, jti) is not None:
-            return True
-        return False
+    async def check_refresh_token_exist(self, user_id: str, jti: str) -> None:
+        if await self._redis_client.zscore(user_id, jti) is None:
+            logger.warning(
+                f"Authorization: "
+                f"Refresh token is valid but not in user active tokens!\n"
+                f"User: '{user_id}', JTI: '{jti}'"
+            )
+            raise HTTPExceptionInvalidToken
 
     async def add_refresh_token(self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5):
         await self.delete_expired_refresh_tokens(user_id)
@@ -103,28 +122,34 @@ class UserService:
             )
         )
         if user_exist:
+            logger.info(f"Registration: {user.username} or {user.email} already exist!")
             raise HTTPExceptionUserAlreadyExists
 
         user_data = user.model_dump()
         user_data["password"] = get_password_hash(password=user.password)
         user_data["id"] = uuid4()
         result = await self._repository.insert(data=user_data)
+        logger.info(f"Registration: Account created!\nUsername:{user.username} | Email:{user.email}")
         return BaseUserInfo.model_validate(result)
 
     async def get_user_by_id(self, user_id: str) -> BaseUserInfo:
         user = await self._repository.find_one_or_none(id=user_id)
         if not user:
+            logger.info(f"User with id: '{user_id}' does not exist!")
             raise HTTPExceptionUserNotFound
         return BaseUserInfo.model_validate(user)
 
     async def check_user_exist_by_email_and_is_not_verified(self, email: str) -> None:
         user = await self._repository.find_one_or_none(email=email)
         if not user:
+            logger.info(f"User with email: '{email}' does not exist!")
             raise HTTPExceptionEmailNotFound
         if user.is_email_verified:
+            logger.info(f"User with email: '{email}' is already verified!")
             raise HTTPExceptionEmailAlreadyVerified
 
     async def check_user_is_active(self, user_id: str) -> None:
         user: BaseUserInfo = await self.get_user_by_id(user_id)
         if not user.is_active:
+            logger.warning(f"User with id: '{user_id}' is inactive!")
             raise HTTPExceptionInactiveUser

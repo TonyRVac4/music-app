@@ -1,3 +1,4 @@
+import logging
 import smtplib
 import email
 from uuid import uuid4
@@ -12,6 +13,7 @@ from .exceptions import HTTPExceptionNoPermission
 from api.src.database.models import Roles
 from api.src.config import settings
 
+logger = logging.getLogger("my_app")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -64,11 +66,21 @@ def validate_token_type(token_type: str, target_type: str) -> bool:
 
 
 def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> None:
-    # над собой делают все что хотят
-    if current_user.id != target_user.id:
+    allowed: bool = True
+
+    if current_user.id != target_user.id:  # над собой делают все что хотят
         if current_user.role == Roles.USER:
-            raise HTTPExceptionNoPermission
+            allowed = False
         if current_user.role == Roles.ADMIN and target_user.role != Roles.USER:
-            raise HTTPExceptionNoPermission
+            allowed = False
         if current_user.role == Roles.SUPER_ADMIN and target_user.role == Roles.SUPER_ADMIN:
-            raise HTTPExceptionNoPermission
+            allowed = False
+
+    if not allowed:
+        logger.warning(
+            f"Permissions: Invalid permission!\n"
+            f"{current_user.role}:{current_user.username}:{current_user.id} "
+            f"tries to perform an action over "
+            f"{target_user.role}:{target_user.username}:{target_user.id}!"
+        )
+        raise HTTPExceptionNoPermission

@@ -1,3 +1,4 @@
+import logging
 import datetime
 from math import ceil
 from typing import Annotated
@@ -10,7 +11,9 @@ from .dependencies import (get_auth_service_dependency, get_user_service_depende
                            get_current_auth_user_by_access, get_current_refresh_token_payload)
 from .service import UserService, AuthService
 from .utils import decode_jwt, check_permissions
-from .exceptions import HTTPExceptionInvalidToken
+
+
+logger = logging.getLogger("my_app")
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -81,6 +84,9 @@ async def login(
         exp_data_stamp=refresh_token_decoded["exp"],
     )
 
+    logger.info(f"Authorization: User '{user.id}' created a new pair of tokens.")
+    logger.info(f"Authentication: User '{user.id}' logged in!")
+
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -93,12 +99,10 @@ async def logout(
         payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> None:
-    if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
-        raise HTTPExceptionInvalidToken
-
     await auth_service.delete_refresh_token(
         user_id=payload.sub, jti=payload.jti,
     )
+    logger.info(f"Authentication: User '{payload.sub}' logged out!")
 
 
 @router.post(
@@ -115,8 +119,7 @@ async def refresh_token(
     await user_service.check_user_is_active(payload.sub)
 
     await auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
-    if not await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti):
-        raise HTTPExceptionInvalidToken
+    await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
 
     access_token: str = await auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
@@ -133,6 +136,9 @@ async def refresh_token(
         jti=decode_jwt(refresh_token)["jti"],
         exp_data_stamp=payload.exp,
     )
+
+    logger.info(f"Authorization: User '{payload.sub}' created a new pair of tokens.")
+
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -150,3 +156,10 @@ async def terminate_all_user_sessions(
     target_user: BaseUserInfo = await user_service.get_user_by_id(user_id=user_id)
     check_permissions(current_user, target_user)
     await auth_service.delete_all_refresh_tokens_by_user_id(user_id)
+
+    logger.info(
+        f"Removed all active refresh tokens:\n"
+        f"'{current_user.role}:{current_user.username}:{current_user.id}:' "
+        f"from "
+        f"'{target_user.role}:{target_user.username}:{target_user.id}'"
+    )
