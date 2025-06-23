@@ -9,6 +9,10 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=10, max_length=64)
 
 
+class UserStatus(BaseModel):
+    is_active: None | bool
+
+
 class BaseUserInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
