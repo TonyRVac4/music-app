@@ -11,11 +11,11 @@ from .repository import UserRepository
 from .service import AuthService, UserService
 from .utils import decode_jwt, validate_token_type
 from .schemas import TokenData, BaseUserInfo
-from .exceptions import HTTPExceptionInvalidToken, HTTPExceptionInactiveUser
+from .exceptions import HTTPExceptionInvalidToken, HTTPExceptionInactiveUser, HTTPExceptionNoPermission
 
 from api.src.config import settings
 from api.src.dependencies.db_dep import get_async_session_with_commit, get_async_redis_client
-
+from api.src.database.models import Roles
 
 logger = logging.getLogger("my_app")
 
@@ -91,7 +91,7 @@ get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(settings.
 
 
 async def get_current_active_user(
-        user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)]
+        user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)],
 ) -> BaseUserInfo:
     if not user.is_active:
         logger.info(
@@ -99,4 +99,12 @@ async def get_current_active_user(
             f"Inactive user {user.id} is trying to get in by access token!"
         )
         raise HTTPExceptionInactiveUser
+    return user
+
+
+async def get_current_active_admin(
+        user: Annotated[BaseUserInfo, Depends(get_current_active_user)],
+) -> BaseUserInfo:
+    if user.role not in [Roles.ADMIN, Roles.SUPER_ADMIN]:
+        raise HTTPExceptionNoPermission
     return user

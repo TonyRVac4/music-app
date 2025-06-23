@@ -153,3 +153,7 @@ class UserService:
         if not user.is_active:
             logger.warning(f"User with id: '{user_id}' is inactive!")
             raise HTTPExceptionInactiveUser
+
+    async def update_is_active(self, user_id: str, is_active: bool) -> BaseUserInfo:
+        user = await self._repository.update(self._model.id == user_id, is_active=is_active)
+        return BaseUserInfo.model_validate(user[0])

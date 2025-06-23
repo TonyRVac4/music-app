@@ -68,12 +68,17 @@ def validate_token_type(token_type: str, target_type: str) -> bool:
 def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> None:
     allowed: bool = True
 
-    if current_user.id != target_user.id:  # над собой делают все что хотят
+    if current_user.id != target_user.id:
         if current_user.role == Roles.USER:
             allowed = False
         if current_user.role == Roles.ADMIN and target_user.role != Roles.USER:
             allowed = False
         if current_user.role == Roles.SUPER_ADMIN and target_user.role == Roles.SUPER_ADMIN:
+            allowed = False
+    else:
+        if current_user.role == Roles.ADMIN:  # admins can't change itself
+            allowed = False
+        if current_user.role == Roles.SUPER_ADMIN:  # super_admin can't change itself
             allowed = False
 
     if not allowed:

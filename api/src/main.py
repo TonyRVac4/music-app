@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import uvicorn
 
-from auth.router import router as auth_router
+from api.src.auth.routers import router as auth_router
 from utils.logger import configure_logger
 from config import settings
 

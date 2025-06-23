@@ -47,3 +47,8 @@ HTTPExceptionEmailAlreadyVerified = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
     detail="Email is already verified!"
 )
+
+HTTPExceptionNotModified = HTTPException(
+    status_code=status.HTTP_304_NOT_MODIFIED,
+    detail="Email is already verified!"
+)
