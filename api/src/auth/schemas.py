@@ -1,6 +1,12 @@
+import enum
 from pydantic import BaseModel, Field, EmailStr, UUID4, ConfigDict
 
-from api.src.database.models import Roles
+from api.src.database.models import Roles as DbRoles
+
+
+class Roles(str, enum.Enum):
+    ADMIN = "ADMIN"
+    USER = "USER"
 
 
 class UserCreate(BaseModel):
@@ -9,8 +15,9 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=10, max_length=64)
 
 
-class UserStatus(BaseModel):
-    is_active: None | bool
+class UserAdminUpdate(BaseModel):
+    is_active: None | bool = None
+    role: None | Roles = None
 
 
 class BaseUserInfo(BaseModel):
@@ -20,7 +27,7 @@ class BaseUserInfo(BaseModel):
     username: str
     email: EmailStr
     is_active: bool
-    role: Roles
+    role: DbRoles
 
 
 class TokenInfoOut(BaseModel):

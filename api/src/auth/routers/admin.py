@@ -3,12 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from api.src.auth.exceptions import HTTPExceptionNotModified
-from api.src.auth.schemas import BaseUserInfo, UserStatus
+from api.src.auth.exceptions import HTTPExceptionNoPermission
+from api.src.auth.schemas import BaseUserInfo, UserAdminUpdate
 from api.src.auth.dependencies import get_user_service_dependency, get_current_active_admin
 from api.src.auth.service import UserService
 from api.src.auth.utils import check_permissions
-
+from api.src.database.models import Roles
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -17,16 +17,16 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     "/user/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def admin_update_user(
+async def admin_update_user_is_active(
         user_id: str,
-        data: UserStatus,
+        data: UserAdminUpdate,
         admin: Annotated[BaseUserInfo, Depends(get_current_active_admin)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ):
     target_user: BaseUserInfo = await user_service.get_user_by_id(user_id)
     check_permissions(admin, target_user)
 
-    if target_user.is_active is data.is_active:
-        raise HTTPExceptionNotModified
+    if data.role and admin.role != Roles.SUPER_ADMIN:
+        raise HTTPExceptionNoPermission
 
-    await user_service.update(user_id, **data.model_dump())
+    await user_service.update(user_id, **data.model_dump(exclude_none=True))
