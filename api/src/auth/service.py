@@ -155,5 +155,24 @@ class UserService:
             raise HTTPExceptionInactiveUser
 
     async def update(self, user_id: str, **values) -> BaseUserInfo:
+        if "username" in values.keys() or "email" in values.keys():
+            check_user = await self._repository.find_all(
+                or_(
+                    self._model.username == values.get("username"),
+                    self._model.email == values.get("email"),
+                )
+            )
+            if len(check_user) > 1 or (check_user and user_id != check_user[0].id):
+                raise HTTPExceptionUserAlreadyExists
+
+            if values.get("email") != check_user[0].email:
+                values["is_email_verified"] = False
+        if values.get("password"):
+            values["password"] = get_password_hash(values["password"])
+
         user = await self._repository.update(self._model.id == user_id, **values)
+        return BaseUserInfo.model_validate(user[0])
+
+    async def delete(self, user_id: str) -> BaseUserInfo:
+        user = await self._repository.delete(self._model.id == user_id)
         return BaseUserInfo.model_validate(user[0])

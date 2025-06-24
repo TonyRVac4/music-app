@@ -10,6 +10,8 @@ from api.src.auth.service import UserService
 from api.src.auth.utils import check_permissions
 from api.src.database.models import Roles
 
+logger = logging.getLogger("my_app")
+
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
@@ -17,7 +19,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     "/user/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def admin_update_user_is_active(
+async def admin_update_user_is_active_and_role(
         user_id: str,
         data: UserAdminUpdate,
         admin: Annotated[BaseUserInfo, Depends(get_current_active_admin)],
@@ -27,6 +29,21 @@ async def admin_update_user_is_active(
     check_permissions(admin, target_user)
 
     if data.role and admin.role != Roles.SUPER_ADMIN:
+        logger.warning(
+            "Admin:\n"
+            f"'{admin.role}:{admin.username}:{admin.id}:' "
+            f"tried to update user role for "
+            f"'{target_user.role}:{target_user.username}:{target_user.id}'!"
+            f"Values: {data.model_dump(exclude_none=True)}"
+        )
         raise HTTPExceptionNoPermission
 
     await user_service.update(user_id, **data.model_dump(exclude_none=True))
+
+    logger.warning(
+        f"Admin:\n"
+        f"'{admin.role}:{admin.username}:{admin.id}:' "
+        f"updated "
+        f"'{target_user.role}:{target_user.username}:{target_user.id}'\n"
+        f"Values: {data.model_dump(exclude_none=True)}"
+    )

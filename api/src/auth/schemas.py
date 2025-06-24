@@ -15,6 +15,12 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=10, max_length=64)
 
 
+class UserUpdate(BaseModel):
+    username: str | None = Field(max_length=32, default=None)
+    email: EmailStr | None = Field(max_length=64, default=None)
+    password: str | None = Field(min_length=10, max_length=64, default=None)
+
+
 class UserAdminUpdate(BaseModel):
     is_active: None | bool = None
     role: None | Roles = None
@@ -27,6 +33,7 @@ class BaseUserInfo(BaseModel):
     username: str
     email: EmailStr
     is_active: bool
+    is_email_verified: bool
     role: DbRoles
 
 
