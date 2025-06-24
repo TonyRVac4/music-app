@@ -25,13 +25,19 @@ def upgrade() -> None:
     op.create_table(
         "users",
         sa.Column("id", sa.UUID(), nullable=False),
-        sa.Column("name", sa.VARCHAR(length=32), nullable=False),
+        sa.Column("username", sa.VARCHAR(length=32), nullable=False),
         sa.Column("email", sa.VARCHAR(length=64), nullable=False),
         sa.Column("password", sa.VARCHAR(length=64), nullable=False),
         sa.Column(
             "is_active",
             sa.BOOLEAN(),
             server_default=sa.text("TRUE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "is_email_verified",
+            sa.BOOLEAN(),
+            server_default=sa.text("FALSE"),
             nullable=False,
         ),
         sa.Column(
@@ -54,7 +60,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("email"),
-        sa.UniqueConstraint("name"),
+        sa.UniqueConstraint("username"),
     )
     # ### end Alembic commands ###
 
