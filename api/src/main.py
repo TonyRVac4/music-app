@@ -1,8 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 import uvicorn
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from api.src.auth.routers import router as auth_router
 from utils.logger import configure_logger
@@ -29,6 +32,14 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": f"Something went wrong! Developers has already been notified and will fix this asap!"}
+    )
 
 
 if __name__ == "__main__":
