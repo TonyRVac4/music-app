@@ -7,10 +7,11 @@ import uvicorn
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.src.auth.routers import router as auth_router
+from api.src.users.routers import router as auth_router
+from api.src.music.routers import router as music_router
+
 from utils.logger import configure_logger
 from config import settings
-
 
 configure_logger()
 logger = logging.getLogger("my_app")
@@ -32,6 +33,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(music_router)
 
 
 @app.exception_handler(SQLAlchemyError)
