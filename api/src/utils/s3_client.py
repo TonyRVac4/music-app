@@ -2,7 +2,7 @@ import aioboto3
 from botocore.exceptions import ClientError
 from types_aiobotocore_s3 import Client
 
-from tempfile import SpooledTemporaryFile
+from io import BytesIO
 
 
 class S3Client:
@@ -55,7 +55,7 @@ class S3Client:
             print(err)
             return None
 
-    async def upload(self, file_obj: SpooledTemporaryFile, file_name: str) -> None:
+    async def upload(self, file_obj: BytesIO, file_name: str) -> None:
         try:
             await self._client.upload_fileobj(Fileobj=file_obj, Bucket=self.bucket_name, Key=file_name)
         except ClientError as err:
