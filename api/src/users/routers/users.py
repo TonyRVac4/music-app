@@ -3,10 +3,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 
-from api.src.auth.schemas import BaseUserInfo, UserUpdate
-from api.src.auth.dependencies import (get_auth_service_dependency, get_user_service_dependency,
-                                       get_current_active_user)
-from api.src.auth.service import UserService, AuthService
+from api.src.users.schemas import BaseUserInfo, UserUpdate
+from api.src.users.dependencies import (get_auth_service_dependency, get_user_service_dependency)
+from api.src.dependencies.auth_deps import get_current_active_user
+from api.src.users.services import UserService, AuthService
 
 
 logger = logging.getLogger("my_app")
