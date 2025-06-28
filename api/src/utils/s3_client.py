@@ -1,7 +1,7 @@
+from contextlib import asynccontextmanager
+
 import aioboto3
 from botocore.exceptions import ClientError
-from types_aiobotocore_s3 import Client
-
 from io import BytesIO
 
 
@@ -19,47 +19,36 @@ class S3Client:
             "aws_secret_access_key": secret_key,
             "region_name": 'us-east-1',
         }
-
-        self.bucket_name = bucket_name
         self._session = aioboto3.Session()
-        self._client: Client = None
+        self.bucket_name = bucket_name
 
-    async def __aenter__(self):
-        self._client = await self._session.client(**self._config).__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._client.__aexit__(exc_type, exc_val, exc_tb)
-
-    async def get(self, file_name: str) -> bytes | None:
-        try:
-            response = await self._client.get_object(Bucket=self.bucket_name, Key=file_name)
-            print(response)
-            content = await response['Body'].read()
-            # content.decode()
-            return content
-        except ClientError as err:
-            print(err)
-            return None
+    @asynccontextmanager
+    async def get_client(self):
+        async with self._session.client(**self._config) as client:
+            yield client
 
     async def get_link(self, file_name: str, expires_in: int = 3600) -> str | None:
-        try:
-            await self._client.get_object(Bucket=self.bucket_name, Key=file_name)
+        async with self.get_client() as client:
+            try:
+                await client.get_object(Bucket=self.bucket_name, Key=file_name)
 
-            return await self._client.generate_presigned_url(
-                ClientMethod='get_object',
-                Params={'Bucket': self.bucket_name, 'Key': file_name},
-                ExpiresIn=expires_in,
-            )
-        except ClientError as err:
-            print(err)
-            return None
+                return await client.generate_presigned_url(
+                    ClientMethod='get_object',
+                    Params={'Bucket': self.bucket_name, 'Key': file_name},
+                    ExpiresIn=expires_in,
+                )
+            except ClientError as err:
+                print(err)
+                return None
 
-    async def upload(self, file_obj: BytesIO, file_name: str) -> None:
-        try:
-            await self._client.upload_fileobj(Fileobj=file_obj, Bucket=self.bucket_name, Key=file_name)
-        except ClientError as err:
-            print(err)
+    async def upload(self, file_obj: BytesIO, filename: str) -> None:
+        async with self.get_client() as client:
+            try:
+                await client.upload_fileobj(
+                    Fileobj=file_obj, Bucket=self.bucket_name, Key=filename,
+                )
+            except ClientError as err:
+                print(err)
 
     def delete(self):
         ...

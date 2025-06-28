@@ -49,6 +49,5 @@ async def get_async_redis_client() -> AsyncGenerator[Redis, None]:
         yield client
 
 
-async def get_async_s3_client() -> AsyncGenerator[Client, None]:
-    async with S3Client(**settings.s3_config) as client:
-        yield client
+async def get_async_s3_client() -> S3Client:
+    return S3Client(**settings.s3_config)
