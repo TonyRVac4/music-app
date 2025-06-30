@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY: str
     S3_SECRET_KEY: str
     BUCKET_NAME: str
+    VIDEO_DURATION_CONSTRAINT: float
 
     @property
     def asyncpg_db_url(self) -> str:
