@@ -23,26 +23,31 @@ class S3Client:
         self.bucket_name = bucket_name
 
     @asynccontextmanager
-    async def get_client(self):
+    async def _get_client(self):
         async with self._session.client(**self._config) as client:
             yield client
 
-    async def get_link(self, file_name: str, expires_in: int = 3600) -> str | None:
-        async with self.get_client() as client:
+    async def check(self, file_name: str) -> bool:
+        async with self._get_client() as client:
             try:
-                await client.get_object(Bucket=self.bucket_name, Key=file_name)
+                await client.head_object(Bucket=self.bucket_name, Key=file_name)
+                return True
+            except ClientError:
+                return False
 
+    async def get_link(self, file_name: str, expires_in: int = 600) -> str | None:
+        async with self._get_client() as client:
+            try:
                 return await client.generate_presigned_url(
                     ClientMethod='get_object',
                     Params={'Bucket': self.bucket_name, 'Key': file_name},
                     ExpiresIn=expires_in,
                 )
             except ClientError as err:
-                print(err)
                 return None
 
     async def upload(self, file_obj: BytesIO, filename: str) -> None:
-        async with self.get_client() as client:
+        async with self._get_client() as client:
             try:
                 await client.upload_fileobj(
                     Fileobj=file_obj, Bucket=self.bucket_name, Key=filename,
@@ -64,4 +69,3 @@ class S3Client:
 # # Список файлов в bucket
 # listed = await s3.list_objects_v2(Bucket=BUCKET)
 # print('Объекты в bucket:', [obj['Key'] for obj in listed.get('Contents', [])])
-#
