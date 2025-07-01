@@ -27,7 +27,6 @@ class YoutubeService:
         if len(data) == 1:
             raise HTTPExceptionFileNotReady
         if len(data) == 2:  # 2nd is __too_long__
-            await self._redis_client.expire(operation_id, 100)
             raise HTTPExceptionVideoIsTooLong
         return {"title": data[1], "filename": data[2], "duration": data[3], "link": data[4]}
 
@@ -37,6 +36,7 @@ class YoutubeService:
         # ограничение на продолжительность скачиваемого ресурса
         if metadata.duration > settings.VIDEO_DURATION_CONSTRAINT:
             await self._redis_client.rpush(operation_id, "__too_long__")
+            await self._redis_client.expire(operation_id, 100)
         else:
             # если файл с таким именем не существует в s3, скачать и загрузить
             if not await self._s3_client.check(metadata.filename):

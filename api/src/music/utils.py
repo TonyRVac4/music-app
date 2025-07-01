@@ -26,27 +26,22 @@ def convert_str_duration_to_float(duration: str) -> float:
 
 def download_audio_from_youtube(url: str) -> FileDTO:
     ydl_opts = {
-        # 'quiet': True,
-        # 'no_warnings': True,
+        'quiet': True,
+        'no_warnings': True,
         'noplaylist': True,
-        # 'noprogress': True,
-        'format': 'm4a/bestaudio/best',
+        'format': ' m4a/bestaudio/best',
         'outtmpl': '%(id)s.%(ext)s',
-        "force_ipv4": True,
-        "source_address": "0.0.0.0",
-        "retries": 3,
-        "fragment_retries": 3,
-        # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
-        # 'postprocessors': [{  # Extract audio using ffmpeg
-        #     'key': 'FFmpegExtractAudio',
-        #     'preferredcodec': 'wav',
-        # }]
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+        try:
+            info = ydl.extract_info(url, download=True)
+        except yt_dlp.utils.DownloadError as e:
+            print(f"Ошибка загрузки: {e}")
+            return None
 
-    local_file_path = f"{info['id']}.{info['audio_ext']}"
+    audio_ext = info.get('audio_ext', 'm4a')
+    local_file_path = f"{info['id']}.{audio_ext}"
     with open(local_file_path, "rb") as file:
         audio_data = BytesIO(file.read())
     audio_data.seek(0)
@@ -55,27 +50,17 @@ def download_audio_from_youtube(url: str) -> FileDTO:
     return FileDTO(
         data=audio_data,
         title=info['title'],
-        filename=clean_title(f"{info['title']} [{info['id']}].m4a"),
+        filename=clean_title(f"{info['title']} [{info['id']}].{audio_ext}"),
         duration=float(info["duration_string"].replace(":", "."))
     )
 
 
 def get_audio_data_from_youtube(url: str) -> FileDTO:
     ydl_opts = {
-        # 'quiet': True,
-        # 'no_warnings': True,
+        'quiet': True,
+        'no_warnings': True,
         'skip_download': True,
-        # 'extract_flat': True,
         'noplaylist': True,
-        # 'noprogress': True,
-        # 'extractor_args': {
-        #     'youtube': {'player_skip': ['webpage', 'js', 'initial_data'],
-        #                 },
-        # },
-        # "dynamic_mpd": False,
-        # "clean_infojson": False,
-        # "lazy_playlist": True,
-
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -83,6 +68,6 @@ def get_audio_data_from_youtube(url: str) -> FileDTO:
 
     return FileDTO(
         title=info['title'],
-        filename=clean_title(f"{info['title']} [{info['id']}].m4a"),
+        filename=clean_title(f"{info['title']} [{info['id']}].{info.get('audio_ext', 'm4a')}"),
         duration=convert_str_duration_to_float(info["duration_string"])
     )
