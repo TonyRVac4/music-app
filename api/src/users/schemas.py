@@ -1,7 +1,7 @@
 import enum
 from pydantic import BaseModel, Field, EmailStr, UUID4, ConfigDict
 
-from api.src.database.models import Roles as DbRoles
+from api.src.database.enums import Roles as DbRoles
 
 
 class Roles(str, enum.Enum):

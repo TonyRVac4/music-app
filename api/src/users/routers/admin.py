@@ -3,12 +3,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from api.src.auth.exceptions import HTTPExceptionNoPermission
-from api.src.auth.schemas import BaseUserInfo, UserAdminUpdate
-from api.src.auth.dependencies import get_user_service_dependency, get_current_active_admin
-from api.src.auth.service import UserService
-from api.src.auth.utils import check_permissions
-from api.src.database.models import Roles
+from api.src.users.exceptions import HTTPExceptionNoPermission
+from api.src.users.schemas import BaseUserInfo, UserAdminUpdate
+from api.src.users.dependencies import get_user_service_dependency
+from api.src.dependencies.auth_deps import get_current_active_admin
+from api.src.users.services import UserService
+from api.src.users.utils import check_permissions
+from api.src.database.enums import Roles
 
 logger = logging.getLogger("my_app")
 

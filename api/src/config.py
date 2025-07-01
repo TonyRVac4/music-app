@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     APP_EMAIL_PASSWORD: str
     APP_HOST: str
     APP_PORT: int
+    S3_HOST: str
+    S3_PORT: int
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    BUCKET_NAME: str
+    VIDEO_DURATION_CONSTRAINT: float
 
     @property
     def asyncpg_db_url(self) -> str:
@@ -36,6 +42,15 @@ class Settings(BaseSettings):
     @property
     def redis_db_url(self) -> str:
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB_NUM}?decode_responses=True"
+
+    @property
+    def s3_config(self) -> dict:
+        return {
+            "endpoint_url": f"http://{self.S3_HOST}:{self.S3_PORT}",
+            "access_key": self.S3_ACCESS_KEY,
+            "secret_key": self.S3_SECRET_KEY,
+            "bucket_name": self.BUCKET_NAME,
+        }
 
     def get_verification_link(self, email, code) -> str:
         return "http://{host}:{port}/api/v1/auth/verify-email?email={email}&code={code}".format(

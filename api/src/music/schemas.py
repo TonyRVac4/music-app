@@ -1,0 +1,22 @@
+from pydantic import BaseModel, ConfigDict
+from io import BytesIO
+
+
+class FileInfoOut(BaseModel):
+    title: str
+    filename: str
+    duration: float
+    link: str
+
+
+class OperationId(BaseModel):
+    operation_id: str
+
+
+class FileDTO(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    data: BytesIO | None = None
+    title: str
+    filename: str
+    duration: float

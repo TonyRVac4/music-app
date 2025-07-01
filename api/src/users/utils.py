@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from .schemas import BaseUserInfo
 from .exceptions import HTTPExceptionNoPermission
 
-from api.src.database.models import Roles
+from api.src.database.enums import Roles
 from api.src.config import settings
 
 logger = logging.getLogger("my_app")

@@ -6,11 +6,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
-from api.src.auth.schemas import UserCreate, BaseUserInfo, TokenInfoOut, TokenData
-from api.src.auth.dependencies import (get_auth_service_dependency, get_user_service_dependency,
-                                       get_current_auth_user_by_access, get_current_refresh_token_payload)
-from api.src.auth.service import UserService, AuthService
-from api.src.auth.utils import decode_jwt, check_permissions
+from api.src.users.schemas import UserCreate, BaseUserInfo, TokenInfoOut, TokenData
+from api.src.users.dependencies import (get_auth_service_dependency, get_user_service_dependency,
+                                        get_current_auth_user_by_access, get_current_refresh_token_payload)
+from api.src.users.services import UserService, AuthService
+from api.src.users.utils import decode_jwt, check_permissions
 
 
 logger = logging.getLogger("my_app")

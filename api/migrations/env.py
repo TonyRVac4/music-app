@@ -1,3 +1,8 @@
+import sys
+import os
+# путь к корню проекта. Чтобы нормально работали импорты из api
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -5,10 +10,11 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.config import settings
+from api.src.config import settings
 
 # необходимо импортировать модели для того чтобы создались все таблицы
-from src.database.models import Base, UserModel
+from api.src.database.models import Base
+from api.src.users.models import UserModel
 
 config = context.config
 
