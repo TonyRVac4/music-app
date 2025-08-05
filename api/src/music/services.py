@@ -4,7 +4,7 @@ from redis.asyncio import Redis
 from uuid import uuid4
 from api.src.music.exceptions import HTTPExceptionOperationNotFound, HTTPExceptionFileNotReady, HTTPExceptionVideoIsTooLong
 from fastapi.concurrency import run_in_threadpool
-from api.src.config import settings
+from api.src.settings import settings
 from .schemas import FileDTO
 
 
@@ -32,9 +32,9 @@ class YoutubeService:
 
     async def download_audio(self, url: str, operation_id: str) -> None:
         metadata: FileDTO = await run_in_threadpool(get_audio_data_from_youtube, url)
-
+        # добавить  celery
         # ограничение на продолжительность скачиваемого ресурса
-        if metadata.duration > settings.VIDEO_DURATION_CONSTRAINT:
+        if metadata.duration > settings.app.video_duration_constraint:
             await self._redis_client.rpush(operation_id, "__too_long__")
             await self._redis_client.expire(operation_id, 100)
         else:

@@ -13,7 +13,7 @@ from .exceptions import (HTTPExceptionInactiveUser, HTTPExceptionInvalidLoginCre
                          HTTPExceptionEmailNotFound, HTTPExceptionEmailAlreadyVerified,
                          HTTPExceptionUserNotFound, HTTPExceptionInvalidToken)
 
-from api.src.config import settings
+from api.src.settings import settings
 
 
 logger = logging.getLogger("my_app")
@@ -48,24 +48,24 @@ class AuthService:
         return BaseUserInfo.model_validate(user)
 
     @staticmethod
-    async def create_access_token(sub: str, expires_in_min: int = settings.ACCESS_TOKEN_EXPIRES_MIN) -> str:
+    async def create_access_token(sub: str, expires_in_min: int = settings.auth.access_token_expires_min) -> str:
         payload = {
             "sub": str(sub),
         }
-        return create_jwt(payload, settings.ACCESS_TOKEN_NAME, expires_in_min)
+        return create_jwt(payload, settings.auth.access_token_name, expires_in_min)
 
     @staticmethod
-    async def create_refresh_token(sub: str, expires_in_min: int = settings.REFRESH_TOKEN_EXPIRES_MIN) -> str:
+    async def create_refresh_token(sub: str, expires_in_min: int = settings.auth.refresh_token_expires_min) -> str:
         payload = {
             "sub": str(sub),
         }
-        return create_jwt(payload, settings.REFRESH_TOKEN_NAME, expires_in_min)
+        return create_jwt(payload, settings.auth.refresh_token_name, expires_in_min)
 
     async def send_verification_code(self, email: str, background_task) -> None:
         code = str(uuid4())
         await self._redis_client.set(email, code, ex=600)
 
-        url = settings.get_verification_link(email, code)
+        url = settings.app.get_verification_link(email, code)
         background_task.add_task(send_email, email, url)
         logger.info(f"Email verification: Code sent! Email: '{email}'")
 

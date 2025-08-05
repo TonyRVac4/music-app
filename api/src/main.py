@@ -11,7 +11,7 @@ from api.src.users.routers import router as auth_router
 from api.src.music.routers import router as music_router
 
 from utils.logger import configure_logger
-from config import settings
+from settings import settings
 
 configure_logger()
 logger = logging.getLogger("my_app")
@@ -40,9 +40,11 @@ app.include_router(music_router)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
     return JSONResponse(
         status_code=500,
-        content={"message": f"Something went wrong! Developers has already been notified and will fix this asap!"}
+        content={
+            "message": "Something went wrong! Developers has already been notified and will fix this asap!"
+        }
     )
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", port=settings.APP_PORT, host=settings.APP_HOST, reload=True)
+    uvicorn.run("main:app", port=settings.app.port, host=settings.app.host, reload=True)

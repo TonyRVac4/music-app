@@ -4,7 +4,7 @@ from sqlalchemy import select, insert, update, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import TypeVar, Generic, Type
+from typing import TypeVar, Generic
 
 from .models import Base
 

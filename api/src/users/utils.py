@@ -11,7 +11,7 @@ from .schemas import BaseUserInfo
 from .exceptions import HTTPExceptionNoPermission
 
 from api.src.database.enums import Roles
-from api.src.config import settings
+from api.src.settings import settings
 
 logger = logging.getLogger("my_app")
 
@@ -27,7 +27,7 @@ def verify_password_hash(password: str, hashed_password: str) -> bool:
 
 
 def decode_jwt(token: str) -> dict:
-    return jwt.decode(token, key=settings.JWT_KEY, algorithms=[settings.JWT_ALGORITHM])
+    return jwt.decode(token, key=settings.auth.jwt_key, algorithms=[settings.auth.jwt_algorithm])
 
 
 def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
@@ -39,24 +39,24 @@ def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
             "exp": round(expiration_time.timestamp()),
             "iat": round(time_now.timestamp()),
             "jti": str(uuid4()),
-            settings.TOKEN_TYPE_FILED_NAME: token_type
+            settings.auth.token_type_filed_name: token_type
         }
     )
 
-    return jwt.encode(payload, key=settings.JWT_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(payload, key=settings.auth.jwt_key, algorithm=settings.auth.jwt_algorithm)
 
 
 def send_email(to_email: str, message: str) -> None:
     with smtplib.SMTP('smtp.gmail.com', 587) as smtpObj:
         smtpObj.starttls()
-        smtpObj.login(user=settings.APP_EMAIL, password=settings.APP_EMAIL_PASSWORD)
+        smtpObj.login(user=settings.email_client.email, password=settings.email_client.password)
         m = email.message.Message()
-        m['From'] = settings.APP_EMAIL
+        m['From'] = settings.email_client.email
         m['To'] = to_email
         m['Subject'] = "Music App email verification."
 
         m.set_payload(message)
-        smtpObj.sendmail(from_addr=settings.APP_EMAIL, to_addrs=to_email, msg=m.as_string())
+        smtpObj.sendmail(from_addr=settings.email_client.email, to_addrs=to_email, msg=m.as_string())
 
 
 def validate_token_type(token_type: str, target_type: str) -> bool:

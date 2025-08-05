@@ -43,7 +43,7 @@ class S3Client:
                     Params={'Bucket': self.bucket_name, 'Key': file_name},
                     ExpiresIn=expires_in,
                 )
-            except ClientError as err:
+            except ClientError:
                 return None
 
     async def upload(self, file_obj: BytesIO, filename: str) -> None:

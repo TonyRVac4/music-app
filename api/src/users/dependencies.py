@@ -13,7 +13,7 @@ from .utils import decode_jwt, validate_token_type
 from .schemas import TokenData, BaseUserInfo
 from .exceptions import HTTPExceptionInvalidToken
 
-from api.src.config import settings
+from api.src.settings import settings
 from api.src.dependencies.db_deps import get_async_session_with_commit, get_async_redis_client
 
 logger = logging.getLogger("my_app")
@@ -46,11 +46,11 @@ async def get_current_refresh_token_payload(
         payload: Annotated[TokenData, Depends(get_current_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> TokenData:
-    if not validate_token_type(payload.type, settings.REFRESH_TOKEN_NAME):
+    if not validate_token_type(payload.type, settings.auth.refresh_token_name):
         logger.warning(
             f"Authorization: "
             f"Invalid token type {payload.type}! "
-            f"Must be {settings.REFRESH_TOKEN_NAME}!"
+            f"Must be {settings.auth.refresh_token_name}!"
             f"User: '{payload.sub}'"
         )
         raise HTTPExceptionInvalidToken
@@ -75,7 +75,7 @@ def get_auth_dependency_from_token_type(token_type: str) -> callable:
             )
             raise HTTPExceptionInvalidToken
         # если token - refresh проверяет есть ли он в активных токенах пользователя
-        if payload.type == settings.REFRESH_TOKEN_NAME:
+        if payload.type == settings.auth.refresh_token_name:
             await auth_service.check_refresh_token_exist(
                 user_id=payload.sub, jti=payload.jti,
             )
@@ -85,5 +85,5 @@ def get_auth_dependency_from_token_type(token_type: str) -> callable:
     return get_current_auth_user_from_token
 
 
-get_current_auth_user_by_access = get_auth_dependency_from_token_type(settings.ACCESS_TOKEN_NAME)
-get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(settings.REFRESH_TOKEN_NAME)
+get_current_auth_user_by_access = get_auth_dependency_from_token_type(settings.auth.access_token_name)
+get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(settings.auth.refresh_token_name)

@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from os import path
 from logging.handlers import TimedRotatingFileHandler
 

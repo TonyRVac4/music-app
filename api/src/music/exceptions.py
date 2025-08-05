@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from api.src.config import settings
+from api.src.settings import settings
 
 HTTPExceptionOperationNotFound = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -13,5 +13,5 @@ HTTPExceptionFileNotReady = HTTPException(
 
 HTTPExceptionVideoIsTooLong = HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    detail=f"Video duration exceeds the maximum allowed length of {settings.VIDEO_DURATION_CONSTRAINT} minutes!"
+    detail=f"Video duration exceeds the maximum allowed length of {settings.app.video_duration_constraint} minutes!"
 )
