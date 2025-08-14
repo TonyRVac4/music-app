@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from jose import jwt
 from passlib.context import CryptContext
 
-from .schemas import BaseUserInfo
+from .schemas import UserDTO
 from .exceptions import HTTPExceptionNoPermission
 
 from api.src.database.enums import Roles
@@ -65,7 +65,7 @@ def validate_token_type(token_type: str, target_type: str) -> bool:
     return False
 
 
-def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> None:
+def check_permissions(current_user: UserDTO, target_user: UserDTO) -> bool:
     allowed: bool = True
 
     if current_user.id != target_user.id:
@@ -76,8 +76,8 @@ def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> 
         if current_user.role == Roles.SUPER_ADMIN and target_user.role == Roles.SUPER_ADMIN:
             allowed = False
     else:
-        if current_user.role == Roles.ADMIN:  # admins can't change itself
-            allowed = False
+        # if current_user.role == Roles.ADMIN:  # admins can't change itself
+        #     allowed = False
         if current_user.role == Roles.SUPER_ADMIN:  # super_admin can't change itself
             allowed = False
 
@@ -88,4 +88,5 @@ def check_permissions(current_user: BaseUserInfo, target_user: BaseUserInfo) -> 
             f"tries to perform an action over "
             f"{target_user.role}:{target_user.username}:{target_user.id}!"
         )
-        raise HTTPExceptionNoPermission
+
+    return allowed

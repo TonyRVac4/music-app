@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError
 from redis.asyncio import Redis
 
-from .repository import UserRepository
+from .repository import UserSQLAlchemyRepository
 from .services import AuthService, UserService
 from .utils import decode_jwt, validate_token_type
-from .schemas import TokenData, BaseUserInfo
+from .schemas import TokenDTO, UserDTO
 from .exceptions import HTTPExceptionInvalidToken
 
 from api.src.settings import settings
@@ -23,29 +23,29 @@ async def get_auth_service_dependency(
         session: Annotated[AsyncSession, Depends(get_async_session_with_commit)],
         redis_client: Annotated[Redis, Depends(get_async_redis_client)],
 ) -> AuthService:
-    return AuthService(UserRepository(session), redis_client)
+    return AuthService(UserSQLAlchemyRepository(session), redis_client)
 
 
 async def get_user_service_dependency(session: AsyncSession = Depends(get_async_session_with_commit)) -> UserService:
-    return UserService(UserRepository(session))
+    return UserService(UserSQLAlchemyRepository(session))
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-async def get_current_token_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenData:
+async def get_current_token_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenDTO:
     try:
         payload: dict = decode_jwt(token)
     except JWTError as exp:
         logger.warning(f"Authorization: Invalid token: {exp}")
         raise HTTPExceptionInvalidToken
-    return TokenData.model_validate(payload)
+    return TokenDTO.model_validate(payload)
 
 
 async def get_current_refresh_token_payload(
-        payload: Annotated[TokenData, Depends(get_current_token_payload)],
+        payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> TokenData:
+) -> TokenDTO:
     if not validate_token_type(payload.type, settings.auth.refresh_token_name):
         logger.warning(
             f"Authorization: "
@@ -61,10 +61,10 @@ async def get_current_refresh_token_payload(
 
 def get_auth_dependency_from_token_type(token_type: str) -> callable:
     async def get_current_auth_user_from_token(
-            payload: Annotated[TokenData, Depends(get_current_token_payload)],
+            payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
             user_service: Annotated[UserService, Depends(get_user_service_dependency)],
             auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-    ) -> BaseUserInfo:
+    ) -> UserDTO:
         # проверка типа чтобы нельзя было логинится по refresh и выпускать новые токены по access
         if not validate_token_type(token_type=payload.type, target_type=token_type):
             logger.warning(
@@ -80,7 +80,7 @@ def get_auth_dependency_from_token_type(token_type: str) -> callable:
                 user_id=payload.sub, jti=payload.jti,
             )
 
-        return await user_service.get_user_by_id(user_id=payload.sub)
+        return await user_service.get_by_id(user_id=payload.sub)
 
     return get_current_auth_user_from_token
 

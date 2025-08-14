@@ -5,28 +5,28 @@ from datetime import datetime
 from sqlalchemy import or_
 from redis.asyncio import Redis
 
-from .repository import UserRepository
-from .schemas import UserCreate, BaseUserInfo
+from .models import SQLAlchemyUserModel
+from .repository import UserSQLAlchemyRepository
+from .schemas import UserCreateRequest, BaseUserInfo, UserDTO, UserUpdateRequest
 from .utils import get_password_hash, verify_password_hash, create_jwt, send_email
 from .exceptions import (HTTPExceptionInactiveUser, HTTPExceptionInvalidLoginCredentials,
                          HTTPExceptionUserAlreadyExists, HTTPExceptionInvalidEmailVerification,
                          HTTPExceptionEmailNotFound, HTTPExceptionEmailAlreadyVerified,
                          HTTPExceptionUserNotFound, HTTPExceptionInvalidToken)
-
 from api.src.settings import settings
-
+from api.src.database.repository import AbstractSQLAlchemyRepository
 
 logger = logging.getLogger("my_app")
 
 
 class AuthService:
-    def __init__(self, repository: UserRepository, redis_client: Redis):
+    def __init__(self, repository: UserSQLAlchemyRepository, redis_client: Redis):
         self._repository = repository
         self._model = repository.model
         self._redis_client = redis_client
 
     async def authenticate_user(self, email, password) -> BaseUserInfo:
-        user = await self._repository.find_one_or_none(
+        user = await self._repository.find_by_id(
             or_(
                 self._model.username == email,
                 self._model.email == email,
@@ -110,37 +110,38 @@ class AuthService:
 
 
 class UserService:
-    def __init__(self, repository: UserRepository):
+    def __init__(self, repository: AbstractSQLAlchemyRepository):
         self._repository = repository
-        self._model = repository.model
 
-    async def register_new_user(self, user: UserCreate) -> BaseUserInfo:
-        user_exist = await self._repository.find_one_or_none(
+    async def create(self, user: UserCreateRequest) -> UserDTO:
+        user_exist = await self._repository.find_by(
             or_(
-                self._model.username == user.username,
-                self._model.email == user.email,
+                SQLAlchemyUserModel.username == user.username,
+                SQLAlchemyUserModel.email == user.email,
             )
         )
         if user_exist:
             logger.info(f"Registration: {user.username} or {user.email} already exist!")
             raise HTTPExceptionUserAlreadyExists
 
-        user_data = user.model_dump()
-        user_data["password"] = get_password_hash(password=user.password)
-        user_data["id"] = uuid4()
-        result = await self._repository.insert(data=user_data)
+        new_user = UserDTO(
+            username=user.username,
+            email=str(user.email),
+            password=get_password_hash(user.password),
+        )
+        result: UserDTO = await self._repository.create(data=new_user)
         logger.info(f"Registration: Account created!\nUsername:{user.username} | Email:{user.email}")
-        return BaseUserInfo.model_validate(result)
+        return result
 
-    async def get_user_by_id(self, user_id: str) -> BaseUserInfo:
-        user = await self._repository.find_one_or_none(id=user_id)
+    async def get_by_id(self, user_id: str) -> UserDTO:
+        user = await self._repository.find_by_id(_id=user_id)
         if not user:
             logger.info(f"User with id: '{user_id}' does not exist!")
             raise HTTPExceptionUserNotFound
-        return BaseUserInfo.model_validate(user)
+        return user
 
     async def check_user_exist_by_email_and_is_not_verified(self, email: str) -> None:
-        user = await self._repository.find_one_or_none(email=email)
+        user = await self._repository.find_by(email=email)
         if not user:
             logger.info(f"User with email: '{email}' does not exist!")
             raise HTTPExceptionEmailNotFound
@@ -148,31 +149,26 @@ class UserService:
             logger.info(f"User with email: '{email}' is already verified!")
             raise HTTPExceptionEmailAlreadyVerified
 
-    async def check_user_is_active(self, user_id: str) -> None:
-        user: BaseUserInfo = await self.get_user_by_id(user_id)
+    async def is_user_active(self, user_id: str) -> bool:
+        user = await self.get_by_id(user_id)
         if not user.is_active:
-            logger.warning(f"User with id: '{user_id}' is inactive!")
-            raise HTTPExceptionInactiveUser
+            return False
+        return True
 
-    async def update(self, user_id: str, **values) -> BaseUserInfo:
-        if "username" in values.keys() or "email" in values.keys():
-            check_user = await self._repository.find_all(
-                or_(
-                    self._model.username == values.get("username"),
-                    self._model.email == values.get("email"),
-                )
-            )
-            if len(check_user) > 1 or (check_user and user_id != check_user[0].id):
-                raise HTTPExceptionUserAlreadyExists
+    async def update(self, user_id: str, data: UserUpdateRequest) -> None:
+        data.id = user_id
 
-            if values.get("email") != check_user[0].email:
-                values["is_email_verified"] = False
-        if values.get("password"):
-            values["password"] = get_password_hash(values["password"])
+        if data.email:
+            data.is_email_verified = False
+        if data.password:
+            data.password = get_password_hash(data.password)
+        try:
+            await self._repository.update(UserDTO.model_validate(data))
+        except ValueError:
+            raise HTTPExceptionUserNotFound
+        #todo нужно написать оброботку нарущения unique constraint
+        # except ValueError:
+        #     raise HTTPExceptionUserNotFound
 
-        user = await self._repository.update(self._model.id == user_id, **values)
-        return BaseUserInfo.model_validate(user[0])
-
-    async def delete(self, user_id: str) -> BaseUserInfo:
-        user = await self._repository.delete(self._model.id == user_id)
-        return BaseUserInfo.model_validate(user[0])
+    async def delete(self, user_id: str) -> None:
+        await self._repository.delete(user_id)

@@ -32,7 +32,12 @@ class AbstractSQLAlchemyRepository(ABC):
 
     @abstractmethod
     async def find_by_id(self, _id: str) -> DTOModelType | None:
-        """Retrieve a entity by their unique identifier."""
+        """Retrieve an entity by their unique identifier."""
+        pass
+
+    @abstractmethod
+    async def find_by(self, *filter_, **filter_by_) -> DTOModelType | None:
+        """Retrieve an entity by their params."""
         pass
 
     @abstractmethod

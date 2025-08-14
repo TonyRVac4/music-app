@@ -6,9 +6,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
-from api.src.users.schemas import UserCreate, BaseUserInfo, TokenInfoOut, TokenData
+from api.src.users.schemas import UserDTO, TokenInfoResponse, TokenDTO
 from api.src.users.dependencies import (get_auth_service_dependency, get_user_service_dependency,
                                         get_current_auth_user_by_access, get_current_refresh_token_payload)
+from api.src.users.exceptions import HTTPExceptionInactiveUser
 from api.src.users.services import UserService, AuthService
 from api.src.users.utils import decode_jwt, check_permissions
 
@@ -19,26 +20,10 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post(
-    "/register",
-    status_code=status.HTTP_201_CREATED,
-    response_model=BaseUserInfo,
-)
-async def register(
-        new_user: UserCreate,
-        background_tasks: BackgroundTasks,
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> BaseUserInfo:
-    result = await user_service.register_new_user(user=new_user)
-    await auth_service.send_verification_code(result.email, background_tasks)
-    return result
-
-
-@router.post(
-    "/resend-email-verification-code",
+    "/send-email-verification-code",
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def resend_email_verification_code(
+async def send_email_verification_code(
         email: str,
         background_tasks: BackgroundTasks,
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
@@ -64,18 +49,18 @@ async def verify_email(
 @router.post(
     "/login",
     status_code=status.HTTP_200_OK,
-    response_model=TokenInfoOut,
+    response_model=TokenInfoResponse,
 )
 async def login(
         credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> TokenInfoOut:
+) -> TokenInfoResponse:
     user = await auth_service.authenticate_user(
         credentials.username, credentials.password
     )
 
-    access_token: str = await auth_service.create_access_token(user.id)
-    refresh_token: str = await auth_service.create_refresh_token(user.id)
+    access_token: str = await auth_service.create_access_token(str(user.id))
+    refresh_token: str = await auth_service.create_refresh_token(str(user.id))
 
     refresh_token_decoded: dict = decode_jwt(refresh_token)
     await auth_service.add_refresh_token(
@@ -96,7 +81,7 @@ async def login(
     description="Logs out user using refresh token.",
 )
 async def logout(
-        payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
+        payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> None:
     await auth_service.delete_refresh_token(
@@ -108,15 +93,16 @@ async def logout(
 @router.post(
     "/refresh-token",
     status_code=status.HTTP_200_OK,
-    response_model=TokenInfoOut,
+    response_model=TokenInfoResponse,
     description="Refreshes tokens using refresh token.",
 )
 async def refresh_token(
-        payload: Annotated[TokenData, Depends(get_current_refresh_token_payload)],
+        payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-) -> TokenInfoOut:
-    await user_service.check_user_is_active(payload.sub)
+) -> TokenInfoResponse:
+    if await user_service.is_user_active(payload.sub):
+        raise HTTPExceptionInactiveUser
 
     await auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
     await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
@@ -149,11 +135,11 @@ async def refresh_token(
 )
 async def terminate_all_user_sessions(
         user_id: str,
-        current_user: Annotated[BaseUserInfo, Depends(get_current_auth_user_by_access)],
+        current_user: Annotated[UserDTO, Depends(get_current_auth_user_by_access)],
         auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> None:
-    target_user: BaseUserInfo = await user_service.get_user_by_id(user_id=user_id)
+    target_user: UserDTO = await user_service.get_by_id(user_id=user_id)
     check_permissions(current_user, target_user)
     await auth_service.delete_all_refresh_tokens_by_user_id(user_id)
 
