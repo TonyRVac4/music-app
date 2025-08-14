@@ -5,7 +5,7 @@ from api.src.database.models import Base, uuid_pk
 from api.src.database.enums import Roles
 
 
-class UserModel(Base):
+class SQLAlchemyUserModel(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid_pk]
