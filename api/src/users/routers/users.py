@@ -1,12 +1,16 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status
 
-from api.src.users.schemas import BaseUserInfo, UserUpdate
-from api.src.users.dependencies import (get_auth_service_dependency, get_user_service_dependency)
+
+from api.src.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO
+from api.src.users.dependencies import get_user_service_dependency
 from api.src.dependencies.auth_deps import get_current_active_user
-from api.src.users.services import UserService, AuthService
+from api.src.users.services import UserService
+from api.src.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
+from api.src.database.enums import Roles
+from api.src.users.utils import check_permissions
 
 
 logger = logging.getLogger("my_app")
@@ -14,56 +18,102 @@ logger = logging.getLogger("my_app")
 router = APIRouter(prefix="/users", tags=["User"])
 
 
-@router.get(
-    "/me",
-    status_code=status.HTTP_200_OK,
-    response_model=BaseUserInfo,
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=UserDTO,
 )
-async def get_self_info(
-        user: Annotated[BaseUserInfo, Depends(get_current_active_user)]
-) -> BaseUserInfo:
-    return user
+async def create_user(
+        new_user: UserCreateRequest,
+        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
+) -> UserDTO:
+    return await user_service.create(user=new_user)
 
 
-@router.patch(
-    "/me",
+@router.get(
+    "/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=BaseUserInfo,
+    response_model=UserDTO,
+)
+async def get_user(
+        user_id: str,
+        user: Annotated[UserDTO, Depends(get_current_active_user)]
+) -> UserDTO:
+    if user.id == user_id or user.role in (Roles.ADMIN, Roles.SUPER_ADMIN):
+        return user
+
+    raise HTTPExceptionNoPermission
+
+
+@router.put(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def update_user(
-        data: UserUpdate,
-        bt: BackgroundTasks,
-        user: Annotated[BaseUserInfo, Depends(get_current_active_user)],
+        user_id: str,
+        data: UserUpdateRequest,
+        current_user: Annotated[UserDTO, Depends(get_current_active_user)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-) -> BaseUserInfo:
-    updated_user: BaseUserInfo = await user_service.update(
-        user_id=user.id, **data.model_dump(exclude_none=True),
-    )
+) -> None:
+    target_user = await user_service.get_by_id(user_id)
 
-    if not updated_user.is_email_verified:
-        await auth_service.send_verification_code(
-            email=updated_user.email, background_task=bt,
+    if not target_user:
+        raise HTTPExceptionUserNotFound
+    if not check_permissions(current_user, target_user):
+        raise HTTPExceptionNoPermission
+    if (
+        data.role and
+        data.role != target_user.role and
+        current_user.role != Roles.SUPER_ADMIN
+    ):
+        # только суперадмин может изменять роль пользователей
+        logger.info(
+            "User:\n"
+            f"'{current_user.role}:{current_user.username}:{current_user.id}:' "
+            f"tried to update user role for "
+            f"'{target_user.role}:{target_user.username}:{target_user.id}'!\n"
+            f"Values: {data.model_dump(exclude_none=True)}"
         )
+        raise HTTPExceptionNoPermission
+    if (
+        data.is_active and
+        data.is_active != target_user.is_active and
+        current_user.role in (Roles.ADMIN, Roles.SUPER_ADMIN) and
+        current_user.id != target_user.id # админы+ не могут изменять статус у самих себя
+    ):
+        # только админ+ может изменять статус пользователей
+        raise HTTPExceptionNoPermission
+
+    await user_service.update(
+        user_id=str(current_user.id), data=data,
+    )
 
     logger.info(
         f"User:\n"
-        f"'{user.role}:{user.username}:{user.id}' updated self profile!"
+        f"'{current_user.role}:{current_user.username}:{current_user.id}' updated profile of "
+        f"'{target_user.role}:{target_user.username}:{target_user.id}'!"
     )
-    return updated_user
 
 
 @router.delete(
-    "/me",
+    "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_user(
-        user: Annotated[BaseUserInfo, Depends(get_current_active_user)],
+        user_id: str,
+        user: Annotated[UserDTO, Depends(get_current_active_user)],
         user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> None:
-    await user_service.delete(user_id=user.id)
+    target_user = await user_service.get_by_id(user_id)
+    if not target_user:
+        raise HTTPExceptionUserNotFound
+    if not check_permissions(user, target_user):
+        raise HTTPExceptionNoPermission
+
+    await user_service.delete(user_id=str(user.id))
 
     logger.info(
         f"User:\n"
-        f"'{user.role}:{user.username}:{user.id}' deleted self account!"
+        f"'{user.role}:{user.username}:{user.id}' deleted profile of "
+        f"'{target_user.role}:{target_user.username}:{target_user.id}'!"
     )
