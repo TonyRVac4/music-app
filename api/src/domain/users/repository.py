@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import select, insert, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
 from api.src.domain.users.models import SQLAlchemyUserModel
@@ -11,7 +12,10 @@ from .schemas import UserDTO
 logger = logging.getLogger("my_app")
 
 
-class UserSQLAlchemyRepository(AbstractSQLAlchemyRepository):
+class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
     async def find_by_id(self, _id: str) -> UserDTO | None:
         try:
             user = await self._session.get(SQLAlchemyUserModel, _id)

@@ -1,0 +1,70 @@
+from functools import cached_property
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
+
+from api.src.domain.music.services import YoutubeService
+from api.src.domain.users.services import AuthService, UserService
+from api.src.infrastructure.dal.uow import SQLAlchemyUnitOfWork, AbstractUnitOfWork
+from api.src.infrastructure.s3_client import S3Client
+from api.src.infrastructure.dal.datasource import SQLAlchemyUnitDataSource, AbstractUnitDataSource
+
+from api.src.infrastructure.settings import Settings
+
+
+class AppContainer:
+    @cached_property
+    def settings(self) -> Settings:
+        return Settings()
+
+    @cached_property
+    def _sqlalchemy_async_engine(self) -> AsyncEngine:
+        return create_async_engine(
+            url=self.settings.postgres.url,
+            poolclass=NullPool,
+            echo=True,
+        )
+
+    @cached_property
+    def _sqlalchemy_async_session_factory(self) -> async_sessionmaker[AsyncSession]:
+        return async_sessionmaker(
+            bind=self._sqlalchemy_async_engine,
+            expire_on_commit=False,
+        )
+
+    @asynccontextmanager
+    async def async_redis_client(self) -> AsyncGenerator[Redis, None]:
+        #todo исправить чтобы можно было передавать в сервисы
+        """note: при необходимости можно размножить данный метод для подключения к разным базам"""
+        async with Redis.from_url(self.settings.redis.url) as client:
+            yield client
+
+    @cached_property
+    def async_s3_client(self) -> S3Client:
+        """note: при необходимости можно размножить данный метод для доступа к разным buckets"""
+        return S3Client(**self.settings.s3.config_dict)
+
+    @cached_property
+    def unit_of_work(self) -> AbstractUnitOfWork[AbstractUnitDataSource]:
+        return SQLAlchemyUnitOfWork(
+            session_factory=self._sqlalchemy_async_session_factory,
+            datasource=SQLAlchemyUnitDataSource,
+        )
+
+    @cached_property
+    def auth_service(self) -> AuthService:
+        return AuthService(unit_of_work=self.unit_of_work)
+
+    @cached_property
+    def user_service(self) -> UserService:
+        return UserService(unit_of_work=self.unit_of_work)
+
+    @cached_property
+    def youtube_service(self) -> YoutubeService:
+        return YoutubeService(s3_client=self.async_s3_client)
+
+
+app = AppContainer()

@@ -3,8 +3,6 @@ from typing import TypeVar
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
 
 logger = logging.getLogger("my_app")
 
@@ -12,9 +10,6 @@ DTOModelType = TypeVar("DTOModelType", bound=BaseModel)
 
 
 class AbstractSQLAlchemyRepository(ABC):
-    def __init__(self, session: AsyncSession):
-        self._session = session
-
     @abstractmethod
     async def create(self, data: DTOModelType) -> DTOModelType:
         """Add a new entity to the repository."""
