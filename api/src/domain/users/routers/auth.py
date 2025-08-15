@@ -7,12 +7,10 @@ from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.src.domain.users.schemas import UserDTO, TokenInfoResponse, TokenDTO
-from api.src.domain.users.dependencies import (get_auth_service_dependency, get_user_service_dependency,
-                                               get_current_auth_user_by_access, get_current_refresh_token_payload)
+from api.src.domain.users.dependencies import get_current_auth_user_by_access, get_current_refresh_token_payload
 from api.src.domain.users.exceptions import HTTPExceptionInactiveUser
-from api.src.domain.users.services import UserService, AuthService
 from api.src.domain.users.utils import decode_jwt, check_permissions
-
+from api.src.infrastructure.app import app
 
 logger = logging.getLogger("my_app")
 
@@ -26,11 +24,9 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 async def send_email_verification_code(
         email: str,
         background_tasks: BackgroundTasks,
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> None:
-    await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await auth_service.send_verification_code(email, background_tasks)
+    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await app.auth_service.send_verification_code(email, background_tasks)
 
 
 @router.get(
@@ -39,11 +35,9 @@ async def send_email_verification_code(
 )
 async def verify_email(
         email: str, code: str,
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> None:
-    await user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await auth_service.confirm_verification_code(email=email, code=code)
+    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await app.auth_service.confirm_verification_code(email=email, code=code)
 
 
 @router.post(
@@ -53,17 +47,16 @@ async def verify_email(
 )
 async def login(
         credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> TokenInfoResponse:
-    user = await auth_service.authenticate_user(
+    user = await app.auth_service.authenticate_user(
         credentials.username, credentials.password
     )
 
-    access_token: str = await auth_service.create_access_token(str(user.id))
-    refresh_token: str = await auth_service.create_refresh_token(str(user.id))
+    access_token: str = await app.auth_service.create_access_token(str(user.id))
+    refresh_token: str = await app.auth_service.create_refresh_token(str(user.id))
 
     refresh_token_decoded: dict = decode_jwt(refresh_token)
-    await auth_service.add_refresh_token(
+    await app.auth_service.add_refresh_token(
         user_id=refresh_token_decoded["sub"],
         jti=refresh_token_decoded["jti"],
         exp_data_stamp=refresh_token_decoded["exp"],
@@ -82,9 +75,8 @@ async def login(
 )
 async def logout(
         payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
 ) -> None:
-    await auth_service.delete_refresh_token(
+    await app.auth_service.delete_refresh_token(
         user_id=payload.sub, jti=payload.jti,
     )
     logger.info(f"Authentication: User '{payload.sub}' logged out!")
@@ -98,26 +90,24 @@ async def logout(
 )
 async def refresh_token(
         payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> TokenInfoResponse:
-    if await user_service.is_user_active(payload.sub):
+    if await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
-    await auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
-    await auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
+    await app.auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
+    await app.auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
 
-    access_token: str = await auth_service.create_access_token(payload.sub)
+    access_token: str = await app.auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
-    refresh_token: str = await auth_service.create_refresh_token(
+    refresh_token: str = await app.auth_service.create_refresh_token(
         sub=payload.sub,
         expires_in_min=ceil((payload.exp - datetime.datetime.now().timestamp()) / 60),
     )
-    await auth_service.delete_refresh_token(
+    await app.auth_service.delete_refresh_token(
         user_id=payload.sub,
         jti=payload.jti
     )
-    await auth_service.add_refresh_token(
+    await app.auth_service.add_refresh_token(
         user_id=payload.sub,
         jti=decode_jwt(refresh_token)["jti"],
         exp_data_stamp=payload.exp,
@@ -136,12 +126,10 @@ async def refresh_token(
 async def terminate_all_user_sessions(
         user_id: str,
         current_user: Annotated[UserDTO, Depends(get_current_auth_user_by_access)],
-        auth_service: Annotated[AuthService, Depends(get_auth_service_dependency)],
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> None:
-    target_user: UserDTO = await user_service.get_by_id(user_id=user_id)
+    target_user: UserDTO = await app.user_service.get_by_id(user_id=user_id)
     check_permissions(current_user, target_user)
-    await auth_service.delete_all_refresh_tokens_by_user_id(user_id)
+    await app.auth_service.delete_all_refresh_tokens_by_user_id(user_id)
 
     logger.info(
         f"Removed all active refresh tokens:\n"

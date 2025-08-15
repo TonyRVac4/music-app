@@ -3,15 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-
 from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO
-from api.src.domain.users.dependencies import get_user_service_dependency
 from api.src.infrastructure.dependencies.auth import get_current_active_user
-from api.src.domain.users.services import UserService
 from api.src.domain.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
 from api.src.infrastructure.database.enums import Roles
 from api.src.domain.users.utils import check_permissions
-
+from api.src.infrastructure.app import app
 
 logger = logging.getLogger("my_app")
 
@@ -25,9 +22,8 @@ router = APIRouter(prefix="/users", tags=["User"])
 )
 async def create_user(
         new_user: UserCreateRequest,
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> UserDTO:
-    return await user_service.create(user=new_user)
+    return await app.user_service.create(check_user=new_user)
 
 
 @router.get(
@@ -53,9 +49,8 @@ async def update_user(
         user_id: str,
         data: UserUpdateRequest,
         current_user: Annotated[UserDTO, Depends(get_current_active_user)],
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> None:
-    target_user = await user_service.get_by_id(user_id)
+    target_user = await app.user_service.get_by_id(user_id)
 
     if not target_user:
         raise HTTPExceptionUserNotFound
@@ -84,7 +79,7 @@ async def update_user(
         # только админ+ может изменять статус пользователей
         raise HTTPExceptionNoPermission
 
-    await user_service.update(
+    await app.user_service.update(
         user_id=str(current_user.id), data=data,
     )
 
@@ -102,15 +97,14 @@ async def update_user(
 async def delete_user(
         user_id: str,
         user: Annotated[UserDTO, Depends(get_current_active_user)],
-        user_service: Annotated[UserService, Depends(get_user_service_dependency)],
 ) -> None:
-    target_user = await user_service.get_by_id(user_id)
+    target_user = await app.user_service.get_by_id(user_id)
     if not target_user:
         raise HTTPExceptionUserNotFound
     if not check_permissions(user, target_user):
         raise HTTPExceptionNoPermission
 
-    await user_service.delete(user_id=str(user.id))
+    await app.user_service.delete(user_id=str(user.id))
 
     logger.info(
         f"User:\n"
