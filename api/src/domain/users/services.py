@@ -13,8 +13,8 @@ from .exceptions import (HTTPExceptionInactiveUser, HTTPExceptionInvalidLoginCre
                          HTTPExceptionUserAlreadyExists, HTTPExceptionInvalidEmailVerification,
                          HTTPExceptionEmailNotFound, HTTPExceptionEmailAlreadyVerified,
                          HTTPExceptionUserNotFound, HTTPExceptionInvalidToken)
-from api.src.settings import settings
-from api.src.database.repository import AbstractSQLAlchemyRepository
+from api.src.infrastructure.settings import settings
+from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
 
 logger = logging.getLogger("my_app")
 

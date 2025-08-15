@@ -4,8 +4,8 @@ from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import select, insert, update, delete
 
-from api.src.database.repository import AbstractSQLAlchemyRepository
-from api.src.users.models import SQLAlchemyUserModel
+from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
+from api.src.domain.users.models import SQLAlchemyUserModel
 from .schemas import UserDTO
 
 logger = logging.getLogger("my_app")

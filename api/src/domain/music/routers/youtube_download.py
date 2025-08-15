@@ -2,11 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, BackgroundTasks, status, Query
 
-from api.src.music.schemas import FileInfoOut, OperationId
+from api.src.domain.music.schemas import FileInfoOut, OperationId
 # from api.src.dependencies.auth_deps import get_current_active_user
 # from api.src.users.schemas import BaseUserInfo
 
-from api.src.music.dependencies import get_youtube_service, YoutubeService
+from api.src.domain.music.dependencies import get_youtube_service, YoutubeService
 
 router = APIRouter(prefix="/youtube", tags=["Youtube"])
 

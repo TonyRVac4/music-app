@@ -13,8 +13,8 @@ from .utils import decode_jwt, validate_token_type
 from .schemas import TokenDTO, UserDTO
 from .exceptions import HTTPExceptionInvalidToken
 
-from api.src.settings import settings
-from api.src.dependencies.db_deps import get_async_session_with_commit, get_async_redis_client
+from api.src.infrastructure.settings import settings
+from api.src.infrastructure.dependencies.db import get_async_session_with_commit, get_async_redis_client
 
 logger = logging.getLogger("my_app")
 

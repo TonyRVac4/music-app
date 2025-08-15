@@ -3,7 +3,7 @@ import re
 from io import BytesIO
 
 import yt_dlp
-from api.src.music.schemas import FileDTO
+from api.src.domain.music.schemas import FileDTO
 
 
 def clean_title(title: str) -> str:

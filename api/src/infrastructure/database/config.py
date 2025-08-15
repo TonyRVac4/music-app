@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.pool import NullPool
 
-from api.src.settings import settings
+from api.src.infrastructure.settings import settings
 
 
 async_engine = create_async_engine(

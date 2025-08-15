@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from uuid import UUID
-from api.src.database.enums import Roles
+from api.src.infrastructure.database.enums import Roles
 
 
 class UserDTO(BaseModel):

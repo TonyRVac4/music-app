@@ -8,10 +8,9 @@ from jose import jwt
 from passlib.context import CryptContext
 
 from .schemas import UserDTO
-from .exceptions import HTTPExceptionNoPermission
 
-from api.src.database.enums import Roles
-from api.src.settings import settings
+from api.src.infrastructure.database.enums import Roles
+from api.src.infrastructure.settings import settings
 
 logger = logging.getLogger("my_app")
 

@@ -1,8 +1,8 @@
 from sqlalchemy import VARCHAR, BOOLEAN, text, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from api.src.database.models import Base, uuid_pk
-from api.src.database.enums import Roles
+from api.src.infrastructure.database.models import Base, uuid_pk
+from api.src.infrastructure.database.enums import Roles
 
 
 class SQLAlchemyUserModel(Base):

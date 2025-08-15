@@ -4,13 +4,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 
-from api.src.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO
-from api.src.users.dependencies import get_user_service_dependency
-from api.src.dependencies.auth_deps import get_current_active_user
-from api.src.users.services import UserService
-from api.src.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
-from api.src.database.enums import Roles
-from api.src.users.utils import check_permissions
+from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO
+from api.src.domain.users.dependencies import get_user_service_dependency
+from api.src.infrastructure.dependencies.auth import get_current_active_user
+from api.src.domain.users.services import UserService
+from api.src.domain.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
+from api.src.infrastructure.database.enums import Roles
+from api.src.domain.users.utils import check_permissions
 
 
 logger = logging.getLogger("my_app")

@@ -1,9 +1,9 @@
 from typing import Annotated
 from fastapi import Depends
 
-from api.src.music.services import YoutubeService
-from api.src.dependencies.db_deps import S3Client, get_async_s3_client
-from api.src.dependencies.db_deps import Redis, get_async_redis_client
+from api.src.domain.music.services import YoutubeService
+from api.src.infrastructure.dependencies.db import S3Client, get_async_s3_client
+from api.src.infrastructure.dependencies.db import Redis, get_async_redis_client
 
 
 async def get_youtube_service(

@@ -5,9 +5,9 @@ from redis.asyncio import Redis
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.src.settings import settings
-from api.src.database.config import async_session
-from api.src.utils.s3_client import S3Client
+from api.src.infrastructure.settings import settings
+from api.src.infrastructure.database.config import async_session
+from api.src.infrastructure.s3_client import S3Client
 
 
 async def get_async_session_with_commit() -> AsyncGenerator[AsyncSession, None]:

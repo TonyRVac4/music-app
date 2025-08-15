@@ -7,11 +7,11 @@ import uvicorn
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.src.users.routers import router as auth_router
-from api.src.music.routers import router as music_router
+from api.src.domain.users import router as auth_router
+from api.src.domain.music import router as music_router
 
-from utils.logger import configure_logger
-from settings import settings
+from api.src.infrastructure.logger import configure_logger
+from api.src.infrastructure.settings import settings
 
 configure_logger()
 logger = logging.getLogger("my_app")

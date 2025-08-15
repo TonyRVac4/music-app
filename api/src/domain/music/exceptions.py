@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from api.src.settings import settings
+from api.src.infrastructure.settings import settings
 
 HTTPExceptionOperationNotFound = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
