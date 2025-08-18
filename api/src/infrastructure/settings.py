@@ -128,3 +128,6 @@ class Settings:
     auth = AuthSettings()
     email_client = EmailClientSettings()
     app = AppSettings()
+
+
+settings = Settings()

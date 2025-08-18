@@ -12,18 +12,14 @@ from api.src.infrastructure.dal.uow import SQLAlchemyUnitOfWork, AbstractUnitOfW
 from api.src.infrastructure.s3_client import S3Client
 from api.src.infrastructure.dal.datasource import SQLAlchemyUnitDataSource, AbstractUnitDataSource
 
-from api.src.infrastructure.settings import Settings
+from api.src.infrastructure.settings import settings
 
 
 class AppContainer:
     @cached_property
-    def settings(self) -> Settings:
-        return Settings()
-
-    @cached_property
     def _sqlalchemy_async_engine(self) -> AsyncEngine:
         return create_async_engine(
-            url=self.settings.postgres.url,
+            url=settings.postgres.url,
             poolclass=NullPool,
             echo=True,
         )
@@ -39,13 +35,13 @@ class AppContainer:
     async def async_redis_client(self) -> AsyncGenerator[Redis, None]:
         #todo исправить чтобы можно было передавать в сервисы
         """note: при необходимости можно размножить данный метод для подключения к разным базам"""
-        async with Redis.from_url(self.settings.redis.url) as client:
+        async with Redis.from_url(settings.redis.url) as client:
             yield client
 
     @cached_property
     def async_s3_client(self) -> S3Client:
         """note: при необходимости можно размножить данный метод для доступа к разным buckets"""
-        return S3Client(**self.settings.s3.config_dict)
+        return S3Client(**settings.s3.config_dict)
 
     @cached_property
     def unit_of_work(self) -> AbstractUnitOfWork[AbstractUnitDataSource]:
