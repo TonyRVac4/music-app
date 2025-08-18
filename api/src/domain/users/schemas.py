@@ -8,11 +8,11 @@ class UserDTO(BaseModel):
 
     id: UUID | None = None
     username: str
-    email: EmailStr
+    email: str
     password: str = Field(exclude=True)
     is_active: bool = Field(default=True)
     is_email_verified: bool = Field(default=False)
-    roles: Roles
+    roles: Roles = Roles.USER
 
 
 class UserCreateRequest(BaseModel):
