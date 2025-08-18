@@ -33,7 +33,6 @@ class AppContainer:
 
     @asynccontextmanager
     async def async_redis_client(self) -> AsyncGenerator[Redis, None]:
-        #todo исправить чтобы можно было передавать в сервисы
         """note: при необходимости можно размножить данный метод для подключения к разным базам"""
         async with Redis.from_url(settings.redis.url) as client:
             yield client
@@ -52,7 +51,10 @@ class AppContainer:
 
     @cached_property
     def auth_service(self) -> AuthService:
-        return AuthService(unit_of_work=self.unit_of_work)
+        return AuthService(
+            unit_of_work=self.unit_of_work,
+            redis_client=self.async_redis_client,
+        )
 
     @cached_property
     def user_service(self) -> UserService:
@@ -60,7 +62,10 @@ class AppContainer:
 
     @cached_property
     def youtube_service(self) -> YoutubeService:
-        return YoutubeService(s3_client=self.async_s3_client)
+        return YoutubeService(
+            s3_client=self.async_s3_client,
+            redis_client=self.async_redis_client,
+        )
 
 
 app = AppContainer()

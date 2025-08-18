@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from typing import AsyncGenerator, AsyncContextManager
 
 from api.src.domain.music.utils import download_audio_from_youtube, get_audio_data_from_youtube
 from api.src.infrastructure.s3_client import S3Client
@@ -6,7 +6,7 @@ from redis.asyncio import Redis
 from uuid import uuid4
 from api.src.domain.music.exceptions import HTTPExceptionOperationNotFound, HTTPExceptionFileNotReady, HTTPExceptionVideoIsTooLong
 from fastapi.concurrency import run_in_threadpool
-from api.src.infrastructure.app import app
+from api.src.infrastructure.settings import settings
 from .schemas import FileDTO
 
 
@@ -14,10 +14,10 @@ class YoutubeService:
     def __init__(
             self,
             s3_client: S3Client,
-            redis_client: AsyncGenerator[Redis] = app.async_redis_client,
+            redis_client,
     ):
-        self._redis_client = redis_client,
         self._s3_client = s3_client
+        self._redis_client = redis_client
 
     async def create_operation(self) -> str:
         operation_id = str(uuid4())
@@ -29,7 +29,7 @@ class YoutubeService:
         return operation_id
 
     async def get_operation(self, operation_id: str) -> dict | None:
-        async with self._redis_client as client:
+        async with self._redis_client() as client:
             data = await client.lrange(operation_id, 0, -1)
 
         if not data:
@@ -44,8 +44,8 @@ class YoutubeService:
         metadata: FileDTO = await run_in_threadpool(get_audio_data_from_youtube, url)
         # добавить celery
         # ограничение на продолжительность скачиваемого ресурса
-        async with self._redis_client as client:
-            if metadata.duration > app.settings.app.video_duration_constraint:
+        async with self._redis_client() as client:
+            if metadata.duration > settings.app.video_duration_constraint:
                 await client.rpush(operation_id, "__too_long__")
                 await client.expire(operation_id, 100)
             else:

@@ -41,6 +41,7 @@ app.include_router(music_router)
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    logger.error(f"SQLAlchemy Error: {exc}")
     return JSONResponse(
         status_code=500,
         content={
