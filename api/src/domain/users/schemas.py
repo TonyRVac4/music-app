@@ -7,12 +7,12 @@ class UserDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID | None = None
-    username: str
-    email: str
-    password: str = Field(exclude=True)
-    is_active: bool = Field(default=True)
-    is_email_verified: bool = Field(default=False)
-    roles: Roles = Roles.USER
+    username: str | None = None
+    email: str | None = None
+    password: str | None = None
+    is_active: None | bool = None
+    is_email_verified: None | bool = None
+    role: Roles | None = None
 
 
 class UserCreateRequest(BaseModel):
@@ -30,7 +30,6 @@ class UserUpdateRequest(BaseModel):
     role: None | Roles = None
 
 
-# возможно нет необходимости из за UserDTO
 class BaseUserInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

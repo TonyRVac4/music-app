@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO
+from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO, BaseUserInfo
 from api.src.infrastructure.dependencies.auth import get_current_active_user
 from api.src.domain.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
 from api.src.infrastructure.database.enums import Roles
@@ -18,24 +18,24 @@ router = APIRouter(prefix="/users", tags=["User"])
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=UserDTO,
+    response_model=BaseUserInfo,
 )
 async def create_user(
         new_user: UserCreateRequest,
 ) -> UserDTO:
-    return await app.user_service.create(check_user=new_user)
+    return await app.user_service.create(new_user)
 
 
 @router.get(
     "/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserDTO,
+    response_model=BaseUserInfo,
 )
 async def get_user(
         user_id: str,
         user: Annotated[UserDTO, Depends(get_current_active_user)]
 ) -> UserDTO:
-    if user.id == user_id or user.role in (Roles.ADMIN, Roles.SUPER_ADMIN):
+    if str(user.id) == user_id or user.role in (Roles.ADMIN, Roles.SUPER_ADMIN):
         return user
 
     raise HTTPExceptionNoPermission
@@ -70,13 +70,21 @@ async def update_user(
             f"Values: {data.model_dump(exclude_none=True)}"
         )
         raise HTTPExceptionNoPermission
+
     if (
-        data.is_active and
+        data.is_active is not None and
         data.is_active != target_user.is_active and
-        current_user.role in (Roles.ADMIN, Roles.SUPER_ADMIN) and
-        current_user.id != target_user.id # админы+ не могут изменять статус у самих себя
+        current_user.role == Roles.USER
     ):
-        # только админ+ может изменять статус пользователей
+        # только админ+ может изменять is_active пользователей
+        raise HTTPExceptionNoPermission
+
+    if (
+        data.is_email_verified is not None and
+        data.is_email_verified != target_user.is_email_verified and
+        current_user.role == Roles.USER
+    ):
+        # только админ+ может изменять is_email_verified пользователей
         raise HTTPExceptionNoPermission
 
     await app.user_service.update(

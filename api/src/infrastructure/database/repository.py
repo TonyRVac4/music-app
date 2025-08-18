@@ -16,7 +16,7 @@ class AbstractSQLAlchemyRepository(ABC):
         pass
 
     @abstractmethod
-    async def update(self, data: DTOModelType) -> DTOModelType:
+    async def update(self, _id: str, data: DTOModelType) -> DTOModelType:
         """Update an existing entity in the repository."""
         pass
 
