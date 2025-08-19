@@ -1,12 +1,13 @@
-from typing import AsyncGenerator, AsyncContextManager
+from uuid import uuid4
+
+from fastapi.concurrency import run_in_threadpool
 
 from api.src.domain.music.utils import download_audio_from_youtube, get_audio_data_from_youtube
+from api.src.domain.music.exceptions import (HTTPExceptionOperationNotFound, HTTPExceptionFileNotReady,
+                                             HTTPExceptionVideoIsTooLong)
 from api.src.infrastructure.s3_client import S3Client
-from redis.asyncio import Redis
-from uuid import uuid4
-from api.src.domain.music.exceptions import HTTPExceptionOperationNotFound, HTTPExceptionFileNotReady, HTTPExceptionVideoIsTooLong
-from fastapi.concurrency import run_in_threadpool
 from api.src.infrastructure.settings import settings
+
 from .schemas import FileDTO
 
 

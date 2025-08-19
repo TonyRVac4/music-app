@@ -3,11 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO, BaseUserInfo
+from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO, UserDataResponse
 from api.src.infrastructure.dependencies.auth import get_current_active_user
-from api.src.domain.users.exceptions import HTTPExceptionNoPermission, HTTPExceptionUserNotFound
+from api.src.domain.users.exceptions import HTTPExceptionUserNotFound
+from api.src.domain.auth.exceptions import HTTPExceptionNoPermission
 from api.src.infrastructure.database.enums import Roles
-from api.src.domain.users.utils import check_permissions
+from api.src.domain.auth.utils import check_permissions
 from api.src.infrastructure.app import app
 
 logger = logging.getLogger("my_app")
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/users", tags=["User"])
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    response_model=BaseUserInfo,
+    response_model=UserDataResponse,
 )
 async def create_user(
         new_user: UserCreateRequest,
@@ -29,7 +30,7 @@ async def create_user(
 @router.get(
     "/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=BaseUserInfo,
+    response_model=UserDataResponse,
 )
 async def get_user(
         user_id: str,

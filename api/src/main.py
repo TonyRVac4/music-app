@@ -1,13 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import uvicorn
-
 from sqlalchemy.exc import SQLAlchemyError
 
-from api.src.domain.users.routers.auth import router as auth_router
+from api.src.domain.auth.routers.auth import router as auth_router
 from api.src.domain.users.routers.users import router as users_router
 from api.src.domain.music.routers.youtube_download import router as music_router
 

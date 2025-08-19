@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from api.src.domain.music.services import YoutubeService
-from api.src.domain.users.services import AuthService, UserService
+from api.src.domain.users.service import UserService
+from api.src.domain.auth.service import AuthService
 from api.src.infrastructure.dal.uow import SQLAlchemyUnitOfWork, AbstractUnitOfWork
 from api.src.infrastructure.s3_client import S3Client
 from api.src.infrastructure.dal.datasource import SQLAlchemyUnitDataSource, AbstractUnitDataSource

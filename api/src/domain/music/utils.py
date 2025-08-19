@@ -3,6 +3,7 @@ import re
 from io import BytesIO
 
 import yt_dlp
+
 from api.src.domain.music.schemas import FileDTO
 
 

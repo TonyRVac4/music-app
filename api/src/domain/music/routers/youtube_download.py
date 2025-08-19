@@ -7,6 +7,7 @@ from api.src.domain.music.schemas import FileInfoOut, OperationId
 # from api.src.users.schemas import BaseUserInfo
 from api.src.infrastructure.app import app
 
+
 router = APIRouter(prefix="/youtube", tags=["Youtube"])
 
 

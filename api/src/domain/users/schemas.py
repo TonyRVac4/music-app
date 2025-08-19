@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from uuid import UUID
+
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+
 from api.src.infrastructure.database.enums import Roles
 
 
@@ -30,7 +32,7 @@ class UserUpdateRequest(BaseModel):
     role: None | Roles = None
 
 
-class BaseUserInfo(BaseModel):
+class UserDataResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
@@ -39,19 +41,3 @@ class BaseUserInfo(BaseModel):
     is_active: bool
     is_email_verified: bool
     role: Roles
-
-
-class TokenInfoResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "Bearer"
-
-
-class TokenDTO(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    sub: str
-    jti: str
-    iat: int
-    exp: int
-    type: str

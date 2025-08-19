@@ -2,8 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from api.src.domain.users.dependencies import get_current_auth_user_by_access, logger
-from api.src.domain.users.exceptions import HTTPExceptionInactiveUser, HTTPExceptionNoPermission
+from api.src.domain.auth.dependencies import logger, get_current_auth_user_by_access
+from api.src.domain.auth.exceptions import HTTPExceptionNoPermission, HTTPExceptionInactiveUser
 from api.src.domain.users.schemas import UserDTO
 from api.src.infrastructure.database.enums import Roles
 
