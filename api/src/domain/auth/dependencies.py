@@ -18,7 +18,9 @@ logger = logging.getLogger("my_app")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-async def get_current_token_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenDTO:
+async def get_current_token_payload(
+    token: Annotated[str, Depends(oauth2_scheme)],
+) -> TokenDTO:
     try:
         payload: dict = decode_jwt(token)
     except JWTError as exp:
@@ -28,7 +30,7 @@ async def get_current_token_payload(token: Annotated[str, Depends(oauth2_scheme)
 
 
 async def get_current_refresh_token_payload(
-        payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
+    payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
 ) -> TokenDTO:
     if not validate_token_type(payload.type, settings.auth.refresh_token_name):
         logger.warning(
@@ -39,13 +41,15 @@ async def get_current_refresh_token_payload(
         )
         raise HTTPExceptionInvalidToken
 
-    await app.auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
+    await app.auth_service.check_refresh_token_exist(
+        user_id=payload.sub, jti=payload.jti,
+    )
     return payload
 
 
 def get_auth_dependency_from_token_type(token_type: str) -> callable:
     async def get_current_auth_user_from_token(
-            payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
+        payload: Annotated[TokenDTO, Depends(get_current_token_payload)],
     ) -> UserDTO:
         # проверка типа чтобы нельзя было логинится по refresh и выпускать новые токены по access
         if not validate_token_type(token_type=payload.type, target_type=token_type):
@@ -59,7 +63,8 @@ def get_auth_dependency_from_token_type(token_type: str) -> callable:
         # если token - refresh проверяет есть ли он в активных токенах пользователя
         if payload.type == settings.auth.refresh_token_name:
             await app.auth_service.check_refresh_token_exist(
-                user_id=payload.sub, jti=payload.jti,
+                user_id=payload.sub,
+                jti=payload.jti,
             )
 
         return await app.user_service.get_by_id(user_id=payload.sub)
@@ -67,5 +72,9 @@ def get_auth_dependency_from_token_type(token_type: str) -> callable:
     return get_current_auth_user_from_token
 
 
-get_current_auth_user_by_access = get_auth_dependency_from_token_type(settings.auth.access_token_name)
-get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(settings.auth.refresh_token_name)
+get_current_auth_user_by_access = get_auth_dependency_from_token_type(
+    settings.auth.access_token_name
+)
+get_current_auth_user_by_refresh = get_auth_dependency_from_token_type(
+    settings.auth.refresh_token_name
+)

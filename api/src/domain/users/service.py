@@ -1,13 +1,20 @@
 import logging
 
 from .schemas import UserCreateRequest, UserDTO, UserUpdateRequest
-from .exceptions import (HTTPExceptionUserAlreadyExists, HTTPExceptionEmailNotFound,
-                         HTTPExceptionUserNotFound, HTTPExceptionEmailAlreadyVerified)
+from .exceptions import (
+    HTTPExceptionUserAlreadyExists,
+    HTTPExceptionEmailNotFound,
+    HTTPExceptionUserNotFound,
+    HTTPExceptionEmailAlreadyVerified,
+)
 from api.src.domain.auth.utils import get_password_hash
 from api.src.infrastructure.dal.uow import AbstractUnitOfWork
 from api.src.infrastructure.dal.datasource import AbstractUnitDataSource
 
-from api.src.infrastructure.database.exceptions import ConstraintViolation, EntityNotFound
+from api.src.infrastructure.database.exceptions import (
+    ConstraintViolation,
+    EntityNotFound,
+)
 
 
 logger = logging.getLogger("my_app")
@@ -15,8 +22,8 @@ logger = logging.getLogger("my_app")
 
 class UserService:
     def __init__(
-            self,
-            unit_of_work: AbstractUnitOfWork[AbstractUnitDataSource],
+        self,
+        unit_of_work: AbstractUnitOfWork[AbstractUnitDataSource],
     ):
         self.uow = unit_of_work
 
@@ -31,10 +38,14 @@ class UserService:
             try:
                 result: UserDTO = await datasource.users.create(data=new_user)
             except ConstraintViolation:
-                logger.info(f"Registration: User with given credentials already exists! ({user.username}, {user.email})")
+                logger.info(
+                    f"Registration: User with given credentials already exists! ({user.username}, {user.email})"
+                )
                 raise HTTPExceptionUserAlreadyExists
 
-            logger.info(f"Registration: Account created!\nUsername:{user.username} | Email:{user.email}")
+            logger.info(
+                f"Registration: Account created!\nUsername:{user.username} | Email:{user.email}"
+            )
             return result
 
     async def get_by_id(self, user_id: str) -> UserDTO:

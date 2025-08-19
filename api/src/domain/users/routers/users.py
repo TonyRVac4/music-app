@@ -3,7 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO, UserDataResponse
+from api.src.domain.users.schemas import (
+    UserUpdateRequest,
+    UserCreateRequest,
+    UserDTO,
+    UserDataResponse,
+)
 from api.src.domain.dependencies import get_current_active_user
 from api.src.domain.users.exceptions import HTTPExceptionUserNotFound
 from api.src.domain.auth.exceptions import HTTPExceptionNoPermission
@@ -22,7 +27,7 @@ router = APIRouter(prefix="/users", tags=["User"])
     response_model=UserDataResponse,
 )
 async def create_user(
-        new_user: UserCreateRequest,
+    new_user: UserCreateRequest,
 ) -> UserDTO:
     return await app.user_service.create(new_user)
 
@@ -33,8 +38,8 @@ async def create_user(
     response_model=UserDataResponse,
 )
 async def get_user(
-        user_id: str,
-        user: Annotated[UserDTO, Depends(get_current_active_user)]
+    user_id: str,
+    user: Annotated[UserDTO, Depends(get_current_active_user)],
 ) -> UserDTO:
     if str(user.id) == user_id or user.role in (Roles.ADMIN, Roles.SUPER_ADMIN):
         return user
@@ -47,9 +52,9 @@ async def get_user(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def update_user(
-        user_id: str,
-        data: UserUpdateRequest,
-        current_user: Annotated[UserDTO, Depends(get_current_active_user)],
+    user_id: str,
+    data: UserUpdateRequest,
+    current_user: Annotated[UserDTO, Depends(get_current_active_user)],
 ) -> None:
     target_user = await app.user_service.get_by_id(user_id)
 
@@ -58,9 +63,9 @@ async def update_user(
     if not check_permissions(current_user, target_user):
         raise HTTPExceptionNoPermission
     if (
-        data.role and
-        data.role != target_user.role and
-        current_user.role != Roles.SUPER_ADMIN
+        data.role
+        and data.role != target_user.role
+        and current_user.role != Roles.SUPER_ADMIN
     ):
         # только суперадмин может изменять роль пользователей
         logger.info(
@@ -73,23 +78,24 @@ async def update_user(
         raise HTTPExceptionNoPermission
 
     if (
-        data.is_active is not None and
-        data.is_active != target_user.is_active and
-        current_user.role == Roles.USER
+        data.is_active is not None
+        and data.is_active != target_user.is_active
+        and current_user.role == Roles.USER
     ):
         # только админ+ может изменять is_active пользователей
         raise HTTPExceptionNoPermission
 
     if (
-        data.is_email_verified is not None and
-        data.is_email_verified != target_user.is_email_verified and
-        current_user.role == Roles.USER
+        data.is_email_verified is not None
+        and data.is_email_verified != target_user.is_email_verified
+        and current_user.role == Roles.USER
     ):
         # только админ+ может изменять is_email_verified пользователей
         raise HTTPExceptionNoPermission
 
     await app.user_service.update(
-        user_id=str(current_user.id), data=data,
+        user_id=str(current_user.id),
+        data=data,
     )
 
     logger.info(
@@ -104,8 +110,8 @@ async def update_user(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_user(
-        user_id: str,
-        user: Annotated[UserDTO, Depends(get_current_active_user)],
+    user_id: str,
+    user: Annotated[UserDTO, Depends(get_current_active_user)],
 ) -> None:
     target_user = await app.user_service.get_by_id(user_id)
     if not target_user:

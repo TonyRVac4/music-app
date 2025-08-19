@@ -6,18 +6,19 @@ from io import BytesIO
 
 
 class S3Client:
-    def __init__(self,
-                 endpoint_url: str,
-                 access_key: str,
-                 secret_key: str,
-                 bucket_name: str,
-                 ):
+    def __init__(
+        self,
+        endpoint_url: str,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+    ):
         self._config = {
             "service_name": "s3",
             "endpoint_url": endpoint_url,
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
-            "region_name": 'us-east-1',
+            "region_name": "us-east-1",
         }
         self._session = aioboto3.Session()
         self.bucket_name = bucket_name
@@ -39,8 +40,8 @@ class S3Client:
         async with self._get_client() as client:
             try:
                 return await client.generate_presigned_url(
-                    ClientMethod='get_object',
-                    Params={'Bucket': self.bucket_name, 'Key': file_name},
+                    ClientMethod="get_object",
+                    Params={"Bucket": self.bucket_name, "Key": file_name},
                     ExpiresIn=expires_in,
                 )
             except ClientError:
@@ -50,16 +51,17 @@ class S3Client:
         async with self._get_client() as client:
             try:
                 await client.upload_fileobj(
-                    Fileobj=file_obj, Bucket=self.bucket_name, Key=filename,
+                    Fileobj=file_obj,
+                    Bucket=self.bucket_name,
+                    Key=filename,
                 )
             except ClientError as err:
                 print(err)
 
-    def delete(self):
-        ...
+    def delete(self): ...
 
-    def delete_bulk(self):
-        ...
+    def delete_bulk(self): ...
+
 
 # # Создание bucket
 # await s3.create_bucket(Bucket=BUCKET)

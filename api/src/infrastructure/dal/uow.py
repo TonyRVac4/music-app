@@ -36,10 +36,11 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         _datasource: Factory function that creates datasource with repositories
 
     """
+
     def __init__(
-            self,
-            session_factory: async_sessionmaker[AsyncSession],
-            datasource: Callable[[AsyncSession], AbstractUnitDataSource],
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        datasource: Callable[[AsyncSession], AbstractUnitDataSource],
     ) -> None:
         self._session_factory = session_factory
         self._datasource = datasource

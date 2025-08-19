@@ -8,11 +8,7 @@ from api.src.domain.music.schemas import FileDTO
 
 
 def clean_title(title: str) -> str:
-    return re.sub(
-        r'[<>:"/\\|?*]',
-        '',
-        title.replace("/", "-").strip()
-    )
+    return re.sub(r'[<>:"/\\|?*]', "", title.replace("/", "-").strip())
 
 
 def convert_str_duration_to_float(duration: str) -> float:
@@ -27,11 +23,11 @@ def convert_str_duration_to_float(duration: str) -> float:
 
 def download_audio_from_youtube(url: str) -> FileDTO:
     ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'noplaylist': True,
-        'format': ' m4a/bestaudio/best',
-        'outtmpl': '%(id)s.%(ext)s',
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+        "format": " m4a/bestaudio/best",
+        "outtmpl": "%(id)s.%(ext)s",
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -41,7 +37,7 @@ def download_audio_from_youtube(url: str) -> FileDTO:
             print(f"Ошибка загрузки: {e}")
             return None
 
-    audio_ext = info.get('audio_ext', 'm4a')
+    audio_ext = info.get("audio_ext", "m4a")
     local_file_path = f"{info['id']}.{audio_ext}"
     with open(local_file_path, "rb") as file:
         audio_data = BytesIO(file.read())
@@ -50,25 +46,27 @@ def download_audio_from_youtube(url: str) -> FileDTO:
 
     return FileDTO(
         data=audio_data,
-        title=info['title'],
+        title=info["title"],
         filename=clean_title(f"{info['title']} [{info['id']}].{audio_ext}"),
-        duration=float(info["duration_string"].replace(":", "."))
+        duration=float(info["duration_string"].replace(":", ".")),
     )
 
 
 def get_audio_data_from_youtube(url: str) -> FileDTO:
     ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'skip_download': True,
-        'noplaylist': True,
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "noplaylist": True,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
     return FileDTO(
-        title=info['title'],
-        filename=clean_title(f"{info['title']} [{info['id']}].{info.get('audio_ext', 'm4a')}"),
-        duration=convert_str_duration_to_float(info["duration_string"])
+        title=info["title"],
+        filename=clean_title(
+            f"{info['title']} [{info['id']}].{info.get('audio_ext', 'm4a')}"
+        ),
+        duration=convert_str_duration_to_float(info["duration_string"]),
     )

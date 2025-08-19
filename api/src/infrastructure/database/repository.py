@@ -36,6 +36,8 @@ class AbstractSQLAlchemyRepository(ABC):
         pass
 
     @abstractmethod
-    async def list_all(self, *filter, offset: int = 0, limit: int = 100, **filter_by) -> list[DTOModelType]:
+    async def list_all(
+        self, *filter, offset: int = 0, limit: int = 100, **filter_by,
+    ) -> list[DTOModelType]:
         """List all entities in the repository."""
         pass

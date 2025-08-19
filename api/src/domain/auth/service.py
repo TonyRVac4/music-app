@@ -4,8 +4,12 @@ from uuid import uuid4, UUID
 
 from sqlalchemy import or_
 
-from api.src.domain.auth.exceptions import (HTTPExceptionInvalidToken, HTTPExceptionInvalidLoginCredentials,
-                                            HTTPExceptionInvalidEmailVerification, HTTPExceptionInactiveUser)
+from api.src.domain.auth.exceptions import (
+    HTTPExceptionInvalidToken,
+    HTTPExceptionInvalidLoginCredentials,
+    HTTPExceptionInvalidEmailVerification,
+    HTTPExceptionInactiveUser,
+)
 from api.src.domain.users.models import SQLAlchemyUserModel
 from api.src.domain.users.schemas import UserDataResponse
 from api.src.domain.auth.utils import verify_password_hash, create_jwt, send_email
@@ -22,9 +26,9 @@ logger = logging.getLogger("my_app")
 
 class AuthService:
     def __init__(
-            self,
-            unit_of_work: AbstractUnitOfWork[AbstractUnitDataSource],
-            redis_client,
+        self,
+        unit_of_work: AbstractUnitOfWork[AbstractUnitDataSource],
+        redis_client,
     ):
         self.uow = unit_of_work
         self._redis_client = redis_client
@@ -54,9 +58,9 @@ class AuthService:
 
     @staticmethod
     async def create_access_token(
-            sub: str,
-            expires_in_min: int = settings.auth.access_token_expires_min,
-            token_type: str = settings.auth.access_token_name,
+        sub: str,
+        expires_in_min: int = settings.auth.access_token_expires_min,
+        token_type: str = settings.auth.access_token_name,
     ) -> str:
         payload = {
             "sub": str(sub),
@@ -65,9 +69,9 @@ class AuthService:
 
     @staticmethod
     async def create_refresh_token(
-            sub: str,
-            expires_in_min: int = settings.auth.refresh_token_expires_min,
-            token_type: str = settings.auth.refresh_token_name,
+        sub: str,
+        expires_in_min: int = settings.auth.refresh_token_expires_min,
+        token_type: str = settings.auth.refresh_token_name,
     ) -> str:
         payload = {
             "sub": str(sub),
@@ -88,22 +92,28 @@ class AuthService:
             redis_code = await client.get(email)
 
         if not redis_code or code != redis_code:
-            logger.warning(f"Email verification: Invalid verification code! | '{email}'")
+            logger.warning(
+                f"Email verification: Invalid verification code! | '{email}'"
+            )
             raise HTTPExceptionInvalidEmailVerification
 
         async with self.uow.begin() as datasource:
             user = await datasource.users.find_by(email=email)
             user.is_email_verified = True
-            await datasource.users.update(user)
+            await datasource.users.update(user.id, user)
 
         async with self._redis_client as client:
             await client.delete(email)
 
-        logger.info(f"Email verification: Code confirmed, account activated. | '{email}'")
+        logger.info(
+            f"Email verification: Code confirmed, account activated. | '{email}'"
+        )
 
     async def check_refresh_token_exist(self, user_id: str, jti: str) -> None:
         async with self.uow.execute() as datasource:
-            token = await datasource.refresh_tokens.find_by(user_id=user_id, token_id=jti)
+            token = await datasource.refresh_tokens.find_by(
+                user_id=user_id, token_id=jti,
+            )
             if not token:
                 logger.warning(
                     f"Authorization: "
@@ -112,7 +122,9 @@ class AuthService:
                 )
                 raise HTTPExceptionInvalidToken
 
-    async def add_refresh_token(self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5):
+    async def add_refresh_token(
+        self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5,
+    ):
         await self.delete_expired_refresh_tokens(user_id)
 
         async with self.uow.begin() as datasource:
@@ -129,7 +141,9 @@ class AuthService:
 
     async def delete_refresh_token(self, user_id: str, jti: str) -> None:
         async with self.uow.begin() as datasource:
-            token = await datasource.refresh_tokens.find_by(user_id=user_id, token_id=jti)
+            token = await datasource.refresh_tokens.find_by(
+                user_id=user_id, token_id=jti,
+            )
             if token:
                 await datasource.refresh_tokens.delete(token.id)
 

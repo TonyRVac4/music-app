@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
 from api.src.domain.users.models import SQLAlchemyUserModel
-from api.src.infrastructure.database.exceptions import ConstraintViolation, EntityNotFound
+from api.src.infrastructure.database.exceptions import (
+    ConstraintViolation,
+    EntityNotFound,
+)
 from .schemas import UserDTO
 
 logger = logging.getLogger("my_app")
@@ -22,7 +25,7 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
         user = await self._session.get(SQLAlchemyUserModel, _id)
 
         if not user:
-             return None
+            return None
         return UserDTO.model_validate(user)
 
     async def find_by(self, *filter_, **filter_by_) -> UserDTO | None:
@@ -35,13 +38,15 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
             return UserDTO.model_validate(user)
         return None
 
-    async def list_all(self, *filter, offset: int = 0, limit: int = 100, **filter_by) -> list[UserDTO]:
+    async def list_all(
+        self, *filter, offset: int = 0, limit: int = 100, **filter_by,
+    ) -> list[UserDTO]:
         stmt = (
-            select(SQLAlchemyUserModel).
-            filter(*filter).
-            filter_by(**filter_by).
-            offset(offset).
-            limit(limit)
+            select(SQLAlchemyUserModel)
+            .filter(*filter)
+            .filter_by(**filter_by)
+            .offset(offset)
+            .limit(limit)
         )
 
         result = await self._session.execute(stmt)
@@ -52,9 +57,9 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
             data.id = uuid4()
 
         stmt = (
-            insert(SQLAlchemyUserModel).
-            values(**data.model_dump(exclude_none=True)).
-            returning(SQLAlchemyUserModel)
+            insert(SQLAlchemyUserModel)
+            .values(**data.model_dump(exclude_none=True))
+            .returning(SQLAlchemyUserModel)
         )
         try:
             result = await self._session.execute(stmt)
@@ -70,13 +75,15 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
         if not user:
             raise EntityNotFound(f"User {_id} not found!")
 
-        if (data.email and data.email != user.email) or (data.username and data.username != user.username):
+        if (data.email and data.email != user.email) or (
+            data.username and data.username != user.username
+        ):
             existing = await self._session.execute(
                 select(SQLAlchemyUserModel).where(
                     SQLAlchemyUserModel.id != _id,
                     or_(
                         SQLAlchemyUserModel.email == data.email,
-                        SQLAlchemyUserModel.username == data.username
+                        SQLAlchemyUserModel.username == data.username,
                     ),
                 )
             )
@@ -86,10 +93,10 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
 
         data.id = UUID4(_id)
         stmt = (
-            update(SQLAlchemyUserModel).
-            where(SQLAlchemyUserModel.id == _id).
-            values(**data.model_dump(exclude_none=True)).
-            returning(SQLAlchemyUserModel)
+            update(SQLAlchemyUserModel)
+            .where(SQLAlchemyUserModel.id == _id)
+            .values(**data.model_dump(exclude_none=True))
+            .returning(SQLAlchemyUserModel)
         )
         try:
             result = await self._session.execute(stmt)

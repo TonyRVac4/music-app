@@ -5,7 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, insert, update
 
 from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
-from api.src.infrastructure.database.exceptions import EntityNotFound, ConstraintViolation
+from api.src.infrastructure.database.exceptions import (
+    EntityNotFound,
+    ConstraintViolation,
+)
 from .models import SQLAlchemyRefreshTokenModel
 from .schemas import RefreshTokenDTO
 
@@ -35,23 +38,27 @@ class SQLAlchemyRefreshTokenRepository(AbstractSQLAlchemyRepository):
             return RefreshTokenDTO.model_validate(user)
         return None
 
-    async def list_all(self, *filter, offset: int = 0, limit: int = 100, **filter_by) -> list[RefreshTokenDTO]:
+    async def list_all(
+        self, *filter, offset: int = 0, limit: int = 100, **filter_by
+    ) -> list[RefreshTokenDTO]:
         stmt = (
-            select(self._model).
-            filter(*filter).
-            filter_by(**filter_by).
-            offset(offset).
-            limit(limit)
+            select(self._model)
+            .filter(*filter)
+            .filter_by(**filter_by)
+            .offset(offset)
+            .limit(limit)
         )
 
         result = await self._session.execute(stmt)
-        return [RefreshTokenDTO.model_validate(token) for token in result.scalars().all()]
+        return [
+            RefreshTokenDTO.model_validate(token) for token in result.scalars().all()
+        ]
 
     async def create(self, data: RefreshTokenDTO) -> RefreshTokenDTO:
         stmt = (
-            insert(self._model).
-            values(**data.model_dump(exclude_none=True)).
-            returning(self._model)
+            insert(self._model)
+            .values(**data.model_dump(exclude_none=True))
+            .returning(self._model)
         )
         try:
             result = await self._session.execute(stmt)
@@ -68,10 +75,10 @@ class SQLAlchemyRefreshTokenRepository(AbstractSQLAlchemyRepository):
             raise EntityNotFound(f"Token {_id} not found!")
 
         stmt = (
-            update(self._model).
-            where(self._model.id == _id).
-            values(**data.model_dump(exclude_none=True)).
-            returning(self._model)
+            update(self._model)
+            .where(self._model.id == _id)
+            .values(**data.model_dump(exclude_none=True))
+            .returning(self._model)
         )
         try:
             result = await self._session.execute(stmt)

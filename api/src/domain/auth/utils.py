@@ -26,7 +26,9 @@ def verify_password_hash(password: str, hashed_password: str) -> bool:
 
 
 def decode_jwt(token: str) -> dict:
-    return jwt.decode(token, key=settings.auth.jwt_key, algorithms=[settings.auth.jwt_algorithm])
+    return jwt.decode(
+        token, key=settings.auth.jwt_key, algorithms=[settings.auth.jwt_algorithm],
+    )
 
 
 def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
@@ -38,24 +40,30 @@ def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
             "exp": round(expiration_time.timestamp()),
             "iat": round(time_now.timestamp()),
             "jti": str(uuid4()),
-            settings.auth.token_type_filed_name: token_type
+            settings.auth.token_type_filed_name: token_type,
         }
     )
 
-    return jwt.encode(payload, key=settings.auth.jwt_key, algorithm=settings.auth.jwt_algorithm)
+    return jwt.encode(
+        payload, key=settings.auth.jwt_key, algorithm=settings.auth.jwt_algorithm,
+    )
 
 
 def send_email(to_email: str, message: str) -> None:
-    with smtplib.SMTP('smtp.gmail.com', 587) as smtpObj:
+    with smtplib.SMTP("smtp.gmail.com", 587) as smtpObj:
         smtpObj.starttls()
-        smtpObj.login(user=settings.email_client.email, password=settings.email_client.password)
+        smtpObj.login(
+            user=settings.email_client.email, password=settings.email_client.password,
+        )
         m = email.message.Message()
-        m['From'] = settings.email_client.email
-        m['To'] = to_email
-        m['Subject'] = "Music App email verification."
+        m["From"] = settings.email_client.email
+        m["To"] = to_email
+        m["Subject"] = "Music App email verification."
 
         m.set_payload(message)
-        smtpObj.sendmail(from_addr=settings.email_client.email, to_addrs=to_email, msg=m.as_string())
+        smtpObj.sendmail(
+            from_addr=settings.email_client.email, to_addrs=to_email, msg=m.as_string(),
+        )
 
 
 def validate_token_type(token_type: str, target_type: str) -> bool:
@@ -72,7 +80,10 @@ def check_permissions(current_user: UserDTO, target_user: UserDTO) -> bool:
             allowed = False
         if current_user.role == Roles.ADMIN and target_user.role != Roles.USER:
             allowed = False
-        if current_user.role == Roles.SUPER_ADMIN and target_user.role == Roles.SUPER_ADMIN:
+        if (
+            current_user.role == Roles.SUPER_ADMIN
+            and target_user.role == Roles.SUPER_ADMIN
+        ):
             allowed = False
     else:
         # if current_user.role == Roles.ADMIN:  # admins can't change itself

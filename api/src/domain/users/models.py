@@ -12,8 +12,12 @@ class SQLAlchemyUserModel(Base):
     username: Mapped[str] = mapped_column(VARCHAR(32), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(VARCHAR(64), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(VARCHAR(64), nullable=False)
-    is_active: Mapped[bool] = mapped_column(BOOLEAN, server_default=text("TRUE"), nullable=False)
-    is_email_verified: Mapped[bool] = mapped_column(BOOLEAN, server_default=text("FALSE"), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        BOOLEAN, server_default=text("TRUE"), nullable=False,
+    )
+    is_email_verified: Mapped[bool] = mapped_column(
+        BOOLEAN, server_default=text("FALSE"), nullable=False,
+    )
     role: Mapped[Roles] = mapped_column(
         Enum(
             Roles,

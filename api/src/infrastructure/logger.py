@@ -9,9 +9,9 @@ if not path.exists("logs/"):
 
 def configure_logger() -> None:
     logger = logging.getLogger("my_app")
-    formatter = logging.Formatter(fmt=
-                                  "%(asctime)s - [%(levelname)s] - %(filename)s.%(funcName)s(%(lineno)d) - %(message)s"
-                                  )
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - [%(levelname)s] - %(filename)s.%(funcName)s(%(lineno)d) - %(message)s"
+    )
 
     # stream_handler = logging.StreamHandler(stream=sys.stdout)
     file_handler = TimedRotatingFileHandler(

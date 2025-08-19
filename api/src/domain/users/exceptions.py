@@ -18,5 +18,5 @@ HTTPExceptionUserAlreadyExists = HTTPException(
 
 HTTPExceptionEmailAlreadyVerified = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
-    detail="Email is already verified!"
+    detail="Email is already verified!",
 )

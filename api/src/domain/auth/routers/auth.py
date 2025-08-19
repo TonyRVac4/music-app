@@ -7,7 +7,10 @@ from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.src.domain.auth.schemas import TokenInfoResponse, TokenDTO
-from api.src.domain.auth.dependencies import get_current_refresh_token_payload, get_current_auth_user_by_access
+from api.src.domain.auth.dependencies import (
+    get_current_refresh_token_payload,
+    get_current_auth_user_by_access,
+)
 from api.src.domain.auth.utils import decode_jwt, check_permissions
 from api.src.domain.users.schemas import UserDTO
 from api.src.domain.auth.exceptions import HTTPExceptionInactiveUser
@@ -24,8 +27,8 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def send_email_verification_code(
-        email: str,
-        background_tasks: BackgroundTasks,
+    email: str,
+    background_tasks: BackgroundTasks,
 ) -> None:
     await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
     await app.auth_service.send_verification_code(email, background_tasks)
@@ -36,7 +39,8 @@ async def send_email_verification_code(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def verify_email(
-        email: str, code: str,
+    email: str,
+    code: str,
 ) -> None:
     await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
     await app.auth_service.confirm_verification_code(email=email, code=code)
@@ -48,7 +52,7 @@ async def verify_email(
     response_model=TokenInfoResponse,
 )
 async def login(
-        credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
+    credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> TokenInfoResponse:
     user = await app.auth_service.authenticate_user(
         credentials.username, credentials.password
@@ -76,10 +80,11 @@ async def login(
     description="Logs out user using refresh token.",
 )
 async def logout(
-        payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
+    payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
 ) -> None:
     await app.auth_service.delete_refresh_token(
-        user_id=payload.sub, jti=payload.jti,
+        user_id=payload.sub,
+        jti=payload.jti,
     )
     logger.info(f"Authentication: User '{payload.sub}' logged out!")
 
@@ -91,13 +96,15 @@ async def logout(
     description="Refreshes tokens using refresh token.",
 )
 async def refresh_token(
-        payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
+    payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
 ) -> TokenInfoResponse:
     if await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
     await app.auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
-    await app.auth_service.check_refresh_token_exist(user_id=payload.sub, jti=payload.jti)
+    await app.auth_service.check_refresh_token_exist(
+        user_id=payload.sub, jti=payload.jti
+    )
 
     access_token: str = await app.auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
@@ -105,10 +112,7 @@ async def refresh_token(
         sub=payload.sub,
         expires_in_min=ceil((payload.exp - datetime.datetime.now().timestamp()) / 60),
     )
-    await app.auth_service.delete_refresh_token(
-        user_id=payload.sub,
-        jti=payload.jti
-    )
+    await app.auth_service.delete_refresh_token(user_id=payload.sub, jti=payload.jti)
     await app.auth_service.add_refresh_token(
         user_id=payload.sub,
         jti=decode_jwt(refresh_token)["jti"],
@@ -126,8 +130,8 @@ async def refresh_token(
     description="Logs out user from all devices using access token. Can be used by admins.",
 )
 async def terminate_all_user_sessions(
-        user_id: str,
-        current_user: Annotated[UserDTO, Depends(get_current_auth_user_by_access)],
+    user_id: str,
+    current_user: Annotated[UserDTO, Depends(get_current_auth_user_by_access)],
 ) -> None:
     target_user: UserDTO = await app.user_service.get_by_id(user_id=user_id)
     check_permissions(current_user, target_user)

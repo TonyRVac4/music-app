@@ -23,6 +23,7 @@ class SQLAlchemyUnitDataSource(AbstractUnitDataSource):
     """
     Encapsulates all project repositories. Available through unit of work class.
     """
+
     def __init__(self, session: AsyncSession):
         self._session = session
 

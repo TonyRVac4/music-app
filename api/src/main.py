@@ -45,7 +45,7 @@ async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
         status_code=500,
         content={
             "message": "Something went wrong! Developers has already been notified and will fix this asap!"
-        }
+        },
     )
 
 

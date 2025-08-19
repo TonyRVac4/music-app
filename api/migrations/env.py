@@ -1,7 +1,8 @@
 import sys
 import os
+
 # путь к корню проекта. Чтобы нормально работали импорты из api
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from logging.config import fileConfig
 
@@ -13,6 +14,7 @@ from alembic import context
 from api.src.infrastructure.settings import settings
 
 # необходимо импортировать модели для того чтобы создались все таблицы
+# ruff: noqa: F401
 from api.src.infrastructure.database.models import Base
 from api.src.domain.users.models import SQLAlchemyUserModel
 from api.src.domain.auth.models import SQLAlchemyRefreshTokenModel

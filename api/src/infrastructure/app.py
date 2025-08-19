@@ -11,7 +11,10 @@ from api.src.domain.users.service import UserService
 from api.src.domain.auth.service import AuthService
 from api.src.infrastructure.dal.uow import SQLAlchemyUnitOfWork, AbstractUnitOfWork
 from api.src.infrastructure.s3_client import S3Client
-from api.src.infrastructure.dal.datasource import SQLAlchemyUnitDataSource, AbstractUnitDataSource
+from api.src.infrastructure.dal.datasource import (
+    SQLAlchemyUnitDataSource,
+    AbstractUnitDataSource,
+)
 
 from api.src.infrastructure.settings import settings
 

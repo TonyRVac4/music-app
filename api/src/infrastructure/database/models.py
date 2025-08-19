@@ -10,12 +10,16 @@ from sqlalchemy.dialects.postgresql import UUID
 uuid_pk = Annotated[
     uuid.UUID,
     mapped_column(
-        UUID(as_uuid=True),  # as_uuid=True - алхимия возвращает как объект uuid.UUID, по умолчанию str
+        UUID(
+            as_uuid=True
+        ),  # as_uuid=True - алхимия возвращает как объект uuid.UUID, по умолчанию str
         primary_key=True,
         nullable=False,
     ),
 ]
-int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True, nullable=False)]
+int_pk = Annotated[
+    int, mapped_column(primary_key=True, autoincrement=True, nullable=False)
+]
 
 
 class Base(DeclarativeBase):
