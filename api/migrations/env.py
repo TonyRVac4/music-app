@@ -14,7 +14,8 @@ from api.src.infrastructure.settings import settings
 
 # необходимо импортировать модели для того чтобы создались все таблицы
 from api.src.infrastructure.database.models import Base
-# from api.src.users.models import UserModel
+from api.src.domain.users.models import SQLAlchemyUserModel
+from api.src.domain.auth.models import SQLAlchemyRefreshTokenModel
 
 config = context.config
 

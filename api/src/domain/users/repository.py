@@ -2,8 +2,8 @@ import logging
 from uuid import uuid4
 
 from pydantic import UUID4
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import select, insert, update, delete, or_
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, insert, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
@@ -53,7 +53,7 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
 
         stmt = (
             insert(SQLAlchemyUserModel).
-            values(**data.model_dump()).
+            values(**data.model_dump(exclude_none=True)).
             returning(SQLAlchemyUserModel)
         )
         try:
