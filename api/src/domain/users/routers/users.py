@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from api.src.domain.users.schemas import UserUpdateRequest, UserCreateRequest, UserDTO, UserDataResponse
-from api.src.infrastructure.dependencies.auth import get_current_active_user
+from api.src.domain.dependencies import get_current_active_user
 from api.src.domain.users.exceptions import HTTPExceptionUserNotFound
 from api.src.domain.auth.exceptions import HTTPExceptionNoPermission
 from api.src.infrastructure.database.enums import Roles
