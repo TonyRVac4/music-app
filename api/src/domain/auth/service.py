@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime
-from uuid import uuid4
+import datetime
+from uuid import uuid4, UUID
 
 from sqlalchemy import or_
 
@@ -12,6 +12,9 @@ from api.src.domain.auth.utils import verify_password_hash, create_jwt, send_ema
 from api.src.infrastructure.dal.datasource import AbstractUnitDataSource
 from api.src.infrastructure.dal.uow import AbstractUnitOfWork
 from api.src.infrastructure.settings import settings
+from api.src.infrastructure.database.exceptions import EntityNotFound
+from .schemas import RefreshTokenDTO
+from .models import SQLAlchemyRefreshTokenModel
 
 
 logger = logging.getLogger("my_app")
@@ -99,8 +102,9 @@ class AuthService:
         logger.info(f"Email verification: Code confirmed, account activated. | '{email}'")
 
     async def check_refresh_token_exist(self, user_id: str, jti: str) -> None:
-        async with self._redis_client() as client:
-            if await client.zscore(user_id, jti) is None:
+        async with self.uow.execute() as datasource:
+            token = await datasource.refresh_tokens.find_by(user_id=user_id, token_id=jti)
+            if not token:
                 logger.warning(
                     f"Authorization: "
                     f"Refresh token is valid but not in user active tokens!\n"
@@ -111,24 +115,47 @@ class AuthService:
     async def add_refresh_token(self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5):
         await self.delete_expired_refresh_tokens(user_id)
 
-        async with self._redis_client() as client:
-            await client.zadd(user_id, {jti: exp_data_stamp})
+        async with self.uow.begin() as datasource:
+            new_token = RefreshTokenDTO(
+                user_id=UUID(user_id),
+                token_id=jti,
+                expires_at=datetime.datetime.fromtimestamp(exp_data_stamp),
+            )
+            await datasource.refresh_tokens.create(new_token)
 
-            # узнаём длину отсортированного множества
-            refresh_token_num: int = await client.zcard(user_id)
-            if refresh_token_num > limit:
-                # Удаляем самый старый элемент по позиции (с наименьшим score)
-                await client.zremrangebyrank(user_id, 0, 0)
+            user_tokens = await datasource.refresh_tokens.list_all(user_id=user_id)
+            if len(user_tokens) > limit:
+                await datasource.refresh_tokens.delete(user_tokens[0].id)
 
     async def delete_refresh_token(self, user_id: str, jti: str) -> None:
-        async with self._redis_client() as client:
-            await client.zrem(user_id, jti)
+        async with self.uow.begin() as datasource:
+            token = await datasource.refresh_tokens.find_by(user_id=user_id, token_id=jti)
+            if token:
+                await datasource.refresh_tokens.delete(token.id)
 
     async def delete_expired_refresh_tokens(self, user_id: str) -> None:
-        now = round(datetime.now().timestamp())
-        async with self._redis_client() as client:
-            await client.zremrangebyscore(user_id, 0, now)
+        now = datetime.datetime.now(datetime.UTC)
+
+        async with self.uow.begin() as datasource:
+            tokens = await datasource.refresh_tokens.list_all(
+                SQLAlchemyRefreshTokenModel.expires_at <= now,
+                user_id=user_id,
+            )
+            if tokens:
+                for token in tokens:
+                    try:
+                        await datasource.users.delete(token.id)
+                    except EntityNotFound:
+                        pass
 
     async def delete_all_refresh_tokens_by_user_id(self, user_id: str) -> None:
-        async with self._redis_client() as client:
-            await client.delete(user_id)
+        async with self.uow.begin() as datasource:
+            tokens = await datasource.refresh_tokens.list_all(
+                user_id=user_id,
+            )
+            if tokens:
+                for token in tokens:
+                    try:
+                        await datasource.users.delete(token.id)
+                    except EntityNotFound:
+                        pass
