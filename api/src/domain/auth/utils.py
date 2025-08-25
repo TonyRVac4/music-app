@@ -86,10 +86,11 @@ def check_permissions(current_user: UserDTO, target_user: UserDTO) -> bool:
         ):
             allowed = False
     else:
+        ...
         # if current_user.role == Roles.ADMIN:  # admins can't change itself
         #     allowed = False
-        if current_user.role == Roles.SUPER_ADMIN:  # super_admin can't change itself
-            allowed = False
+        # if current_user.role == Roles.SUPER_ADMIN:  # super_admin can't change itself
+        #     allowed = False
 
     if not allowed:
         logger.warning(

@@ -22,7 +22,7 @@ router = APIRouter(prefix="/users", tags=["User"])
 
 
 @router.post(
-    "/",
+    "",
     status_code=status.HTTP_201_CREATED,
     response_model=UserDataResponse,
 )
@@ -39,12 +39,15 @@ async def create_user(
 )
 async def get_user(
     user_id: str,
-    user: Annotated[UserDTO, Depends(get_current_active_user)],
+    current_user: Annotated[UserDTO, Depends(get_current_active_user)],
 ) -> UserDTO:
-    if str(user.id) == user_id or user.role in (Roles.ADMIN, Roles.SUPER_ADMIN):
-        return user
+    target_user = await app.user_service.get_by_id(user_id)
+    if not target_user:
+        raise HTTPExceptionUserNotFound
+    if not check_permissions(current_user, target_user):
+        raise HTTPExceptionNoPermission
 
-    raise HTTPExceptionNoPermission
+    return target_user
 
 
 @router.put(
@@ -79,22 +82,28 @@ async def update_user(
 
     if (
         data.is_active is not None
-        and data.is_active != target_user.is_active
-        and current_user.role == Roles.USER
+        and (
+            current_user.role == Roles.USER
+            or (current_user.role in (Roles.ADMIN, Roles.SUPER_ADMIN)
+             and current_user.id == target_user.id)
+        )
     ):
         # только админ+ может изменять is_active пользователей
         raise HTTPExceptionNoPermission
 
     if (
         data.is_email_verified is not None
-        and data.is_email_verified != target_user.is_email_verified
-        and current_user.role == Roles.USER
+        and (
+            current_user.role == Roles.USER
+            or (current_user.role in (Roles.ADMIN, Roles.SUPER_ADMIN)
+             and current_user.id == target_user.id)
+        )
     ):
         # только админ+ может изменять is_email_verified пользователей
         raise HTTPExceptionNoPermission
 
     await app.user_service.update(
-        user_id=str(current_user.id),
+        user_id=str(target_user.id),
         data=data,
     )
 
@@ -116,10 +125,13 @@ async def delete_user(
     target_user = await app.user_service.get_by_id(user_id)
     if not target_user:
         raise HTTPExceptionUserNotFound
-    if not check_permissions(user, target_user):
+    if (
+        not check_permissions(user, target_user)
+        or (target_user.role in (Roles.ADMIN, Roles.SUPER_ADMIN) and target_user.id == user.id)
+    ):
         raise HTTPExceptionNoPermission
 
-    await app.user_service.delete(user_id=str(user.id))
+    await app.user_service.delete(user_id=str(target_user.id))
 
     logger.info(
         f"User:\n"
