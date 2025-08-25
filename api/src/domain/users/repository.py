@@ -87,8 +87,7 @@ class SQLAlchemyUserRepository(AbstractSQLAlchemyRepository):
                     ),
                 )
             )
-            existing_user = existing.scalars()
-            if existing_user:
+            if existing.scalars().all():
                 raise ConstraintViolation("Username or email is already in use")
 
         data.id = UUID4(_id)

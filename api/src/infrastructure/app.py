@@ -25,7 +25,7 @@ class AppContainer:
         return create_async_engine(
             url=settings.postgres.url,
             poolclass=NullPool,
-            echo=True,
+            # echo=True,
         )
 
     @cached_property
