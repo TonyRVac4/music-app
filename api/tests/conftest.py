@@ -19,6 +19,9 @@ async def setup_database():
     async with app_container._sqlalchemy_async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
+    async with app_container.async_redis_client() as conn:
+        await conn.flushdb()
+
 
 @pytest.fixture
 async def simple_user() -> UserDTO:
