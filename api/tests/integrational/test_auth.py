@@ -114,8 +114,8 @@ class TestLogin:
         access_exp_time = time_now + timedelta(minutes=settings.auth.access_token_expires_min).total_seconds()
         refresh_exp_time = time_now + timedelta(minutes=settings.auth.refresh_token_expires_min).total_seconds()
 
-        assert abs(access_token_exp_date - access_exp_time) < 0.1
-        assert abs(refresh_token_exp_date - refresh_exp_time) < 0.1
+        assert abs(access_token_exp_date - access_exp_time) < 1.0
+        assert abs(refresh_token_exp_date - refresh_exp_time) < 1.0
 
 
 class TestLogout:

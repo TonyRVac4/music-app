@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 
 from api.src.domain.users.schemas import (
     UserUpdateRequest,
@@ -28,8 +28,12 @@ router = APIRouter(prefix="/users", tags=["User"])
 )
 async def create_user(
     new_user: UserCreateRequest,
+        # bt: BackgroundTasks,
 ) -> UserDTO:
-    return await app.user_service.create(new_user)
+    new_user = await app.user_service.create(new_user)
+    # await app.auth_service.send_verification_code(new_user.email, bt)
+
+    return new_user
 
 
 @router.get(
@@ -132,7 +136,7 @@ async def delete_user(
         raise HTTPExceptionNoPermission
 
     await app.user_service.delete(user_id=str(target_user.id))
-
+    await app.auth_service.delete_all_refresh_tokens_by_user_id(user_id=str(target_user.id))
     logger.info(
         f"User:\n"
         f"'{user.role}:{user.username}:{user.id}' deleted profile of "

@@ -80,7 +80,7 @@ class AuthService:
 
     async def send_verification_code(self, email: str, background_task) -> None:
         code = str(uuid4())
-        async with self._redis_client as client:
+        async with self._redis_client() as client:
             await client.set(email, code, ex=600)
 
         url = settings.app.get_verification_link(email, code)
@@ -102,7 +102,7 @@ class AuthService:
             user.is_email_verified = True
             await datasource.users.update(user.id, user)
 
-        async with self._redis_client as client:
+        async with self._redis_client() as client:
             await client.delete(email)
 
         logger.info(
