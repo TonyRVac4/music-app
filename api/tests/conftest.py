@@ -144,6 +144,8 @@ async def user_client(simple_user):
         )
         result = new_login.json()
         client.headers["Authorization"] = f"{result["token_type"]} {result["access_token"]}"
+        client.cookies.set("refresh_token", result["refresh_token"])
+        client.cookies.set("access_token", result["access_token"])
         yield client
 
 
@@ -158,6 +160,8 @@ async def admin_client(admin_user):
         )
         result = new_login.json()
         client.headers["Authorization"] = f"{result["token_type"]} {result["access_token"]}"
+        client.cookies.set("refresh_token", result["refresh_token"])
+        client.cookies.set("access_token", result["access_token"])
         yield client
 
 
@@ -172,4 +176,6 @@ async def superadmin_client(superadmin_user):
         )
         result = new_login.json()
         client.headers["Authorization"] = f"{result["token_type"]} {result["access_token"]}"
+        client.cookies.set("refresh_token", result["refresh_token"])
+        client.cookies.set("access_token", result["access_token"])
         yield client

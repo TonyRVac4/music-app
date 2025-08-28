@@ -1,7 +1,7 @@
 import email
 import logging
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from jose import jwt
@@ -32,7 +32,7 @@ def decode_jwt(token: str) -> dict:
 
 
 def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
-    time_now = datetime.now()
+    time_now = datetime.now(tz=timezone.utc)
     expiration_time = time_now + timedelta(minutes=expires_minutes)
 
     payload.update(

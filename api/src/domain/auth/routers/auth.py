@@ -21,31 +21,6 @@ logger = logging.getLogger("my_app")
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-
-@router.post(
-    "/send-email-verification-code",
-    status_code=status.HTTP_202_ACCEPTED,
-)
-async def send_email_verification_code(
-    email: str,
-    background_tasks: BackgroundTasks,
-) -> None:
-    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await app.auth_service.send_verification_code(email, background_tasks)
-
-
-@router.get(
-    "/verify-email",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def verify_email(
-    email: str,
-    code: str,
-) -> None:
-    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await app.auth_service.confirm_verification_code(email=email, code=code)
-
-
 @router.post(
     "/login",
     status_code=status.HTTP_200_OK,
@@ -53,7 +28,7 @@ async def verify_email(
 )
 async def login(
     credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
-) -> TokenInfoResponse:
+) -> dict[str, str]:
     user = await app.auth_service.authenticate_user(
         credentials.username, credentials.password
     )
@@ -97,7 +72,7 @@ async def logout(
 )
 async def refresh_token(
     payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
-) -> TokenInfoResponse:
+) -> dict[str, str]:
     if await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
@@ -125,7 +100,7 @@ async def refresh_token(
 
 
 @router.post(
-    "/terminate-all-user-sessions",
+    "/terminate-all-user-sessions/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     description="Logs out user from all devices using access token. Can be used by admins.",
 )
@@ -143,3 +118,27 @@ async def terminate_all_user_sessions(
         f"from "
         f"'{target_user.role}:{target_user.username}:{target_user.id}'"
     )
+
+
+@router.post(
+    "/send-email-verification-code",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def send_email_verification_code(
+    email: str,
+    background_tasks: BackgroundTasks,
+) -> None:
+    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await app.auth_service.send_verification_code(email, background_tasks)
+
+
+@router.get(
+    "/verify-email",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def verify_email(
+    email: str,
+    code: str,
+) -> None:
+    await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
+    await app.auth_service.confirm_verification_code(email=email, code=code)
