@@ -1,5 +1,7 @@
-from httpx import AsyncClient
+import asyncio
 from datetime import datetime, timedelta, timezone
+
+from httpx import AsyncClient
 
 from api.src.domain.users.schemas import UserDTO
 from api.src.domain.auth.utils import decode_jwt
@@ -10,7 +12,14 @@ from api.src.infrastructure.settings import settings
 
 async def get_refresh_token(jti: str) -> TokenDTO | None:
     async with app.unit_of_work.execute() as uow:
-        return await uow.refresh_tokens.find_by(token_id=jti)
+        return await uow.refresh_tokens.find_by_id(jti)
+
+
+async def make_user_inactive(user_id: str) -> None:
+    async with app.unit_of_work.begin() as uow:
+        user = await uow.users.find_by_id(user_id)
+        user.is_active = False
+        await uow.users.update(user_id, user)
 
 
 class TestLogin:
@@ -153,3 +162,101 @@ class TestLogout:
 
         token_before_logout = await get_refresh_token(refresh_token_id)
         assert token_before_logout is not None
+
+
+class TestRefreshToken:
+    async def test_refresh_token(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        old_access_token = user_client.cookies.get("access_token")
+        old_refresh_token = user_client.cookies.get("refresh_token")
+
+        # нужен для того чтобы refresh отличались
+        await asyncio.sleep(2)
+
+        response = await user_client.post(
+            "/api/v1/auth/refresh-token",
+            headers={"Authorization": f"Bearer {old_refresh_token}"},
+        )
+        assert response.status_code == 200
+
+        result = response.json()
+        new_access_token = result.get("access_token")
+        new_refresh_token = result.get("refresh_token")
+
+        assert new_access_token is not None
+        assert new_refresh_token is not None
+        assert result["token_type"] == "Bearer"
+
+        assert result["access_token"] != old_access_token
+        assert result["refresh_token"] != old_refresh_token
+
+        decoded_old_access_token = decode_jwt(old_access_token)
+        decoded_old_refresh_token = decode_jwt(old_refresh_token)
+        decoded_new_access_token = decode_jwt(new_access_token)
+        decoded_new_refresh_token = decode_jwt(new_refresh_token)
+
+        # старый и новый refresh не должны отличаются дрг от друга больше чем на 2 минуты
+        assert abs(decoded_new_refresh_token["exp"] - decoded_old_refresh_token["exp"]) < 120
+        assert decoded_new_access_token["exp"] != decoded_old_access_token["exp"]
+
+        # проверка замены refresh в базе
+        old_refresh_in_db = await get_refresh_token(decoded_old_refresh_token["jti"])
+        new_refresh_in_db = await get_refresh_token(decoded_new_refresh_token["jti"])
+        assert old_refresh_in_db is None
+        assert new_refresh_in_db is not None
+
+    async def test_cant_refresh_with_access_token(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        old_access_token = user_client.cookies.get("access_token")
+
+        response = await user_client.post(
+            "/api/v1/auth/refresh-token",
+            headers={"Authorization": f"Bearer {old_access_token}"},
+        )
+        assert response.status_code == 401
+
+    async def test_cant_refresh_with_expired_refresh_token(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        expired_refresh_token = await app.auth_service.create_refresh_token(simple_user.id)
+
+        response = await user_client.post(
+            "/api/v1/auth/refresh-token",
+            headers={"Authorization": f"Bearer {expired_refresh_token}"},
+        )
+        assert response.status_code == 401
+
+    async def test_inactive_user_cant_refresh_token(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        await make_user_inactive(str(simple_user.id))
+
+        old_refresh_token = user_client.cookies.get("refresh_token")
+
+        response = await user_client.post(
+            "/api/v1/auth/refresh-token",
+            headers={"Authorization": f"Bearer {old_refresh_token}"},
+        )
+        assert response.status_code == 403
+
+    async def test_cant_refresh_if_refresh_token_not_in_db(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        old_refresh_token = user_client.cookies.get("refresh_token")
+        old_refresh_token_id = decode_jwt(old_refresh_token)["jti"]
+
+        token_before = await get_refresh_token(old_refresh_token_id)
+        async with app.unit_of_work.begin() as uow:
+            await uow.refresh_tokens.delete(old_refresh_token_id)
+        token_after = await get_refresh_token(old_refresh_token_id)
+
+        assert token_before is not None
+        assert token_after is None
+
+        response = await user_client.post(
+            "/api/v1/auth/refresh-token",
+            headers={"Authorization": f"Bearer {old_refresh_token}"},
+        )
+        assert response.status_code == 401
