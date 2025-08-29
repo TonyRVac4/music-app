@@ -75,7 +75,8 @@ class UserService:
 
     async def update(self, user_id: str, data: UserUpdateRequest) -> None:
         async with self.uow.begin() as datasource:
-            if data.email:
+            user = await self.get_by_id(user_id)
+            if data.email != user.email:
                 data.is_email_verified = False
             if data.password:
                 data.password = get_password_hash(data.password)

@@ -232,7 +232,7 @@ class TestRefreshToken:
             jti=decoded_expired_refresh_token["jti"],
             exp_date_stamp=decoded_expired_refresh_token["exp"]
         )
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
         response = await user_client.post(
             "/api/v1/auth/refresh-token",

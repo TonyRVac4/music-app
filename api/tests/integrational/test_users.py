@@ -245,6 +245,40 @@ class TestUpdate:
         )
         assert response.status_code == 409
 
+    async def test_update_email_with_new_email_sets_email_verified_to_false(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        user_before = await get_user(str(simple_user.id))
+        assert user_before.is_email_verified == True
+
+        response = await user_client.put(
+            f"/api/v1/users/{simple_user.id}",
+            json={
+                "email": "new_test_user_email@gmail.com",
+            },
+        )
+        assert response.status_code == 204
+
+        user_after = await get_user(str(simple_user.id))
+        assert user_after.is_email_verified == False
+
+    async def test_update_email_with_current_email_does_not_change_verified_status(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        user_before = await get_user(str(simple_user.id))
+        assert user_before.is_email_verified == True
+
+        response = await user_client.put(
+            f"/api/v1/users/{simple_user.id}",
+            json={
+                "email": simple_user.email,
+            },
+        )
+        assert response.status_code == 204
+
+        user_after = await get_user(str(simple_user.id))
+        assert user_after.is_email_verified == True
+
     async def test_user_cant_update_other_users(
             self, user_client: AsyncClient, other_simple_user: UserDTO,
     ):
@@ -356,7 +390,7 @@ class TestUpdate:
         assert response.status_code == 204
 
         user = await get_user(str(simple_user.id))
-        print(user)
+
         assert user.username == "new_test_user_name"
         assert user.email == "new_test_user_email@gmail.com"
         assert verify_password_hash("0987654321", user.password)
