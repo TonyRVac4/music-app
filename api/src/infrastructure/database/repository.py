@@ -26,6 +26,11 @@ class AbstractSQLAlchemyRepository(ABC):
         pass
 
     @abstractmethod
+    async def delete_by(self, *filter_, **filter_by_) -> None:
+        """Remove an entity from the repository by their unique identifier."""
+        pass
+
+    @abstractmethod
     async def find_by_id(self, _id: str) -> DTOModelType | None:
         """Retrieve an entity by their unique identifier."""
         pass

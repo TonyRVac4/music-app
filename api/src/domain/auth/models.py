@@ -10,8 +10,7 @@ from api.src.infrastructure.database.models import Base, int_pk
 class SQLAlchemyRefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[int_pk]
-    token_id: Mapped[str] = mapped_column(VARCHAR, unique=True, nullable=False)
+    jti: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), unique=True, nullable=False, primary_key=True)
     expires_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False,
     )

@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, delete
 
 from api.src.infrastructure.database.repository import AbstractSQLAlchemyRepository
 from api.src.infrastructure.database.exceptions import (
@@ -76,7 +76,7 @@ class SQLAlchemyRefreshTokenRepository(AbstractSQLAlchemyRepository):
 
         stmt = (
             update(self._model)
-            .where(self._model.id == _id)
+            .where(self._model.jti == _id)
             .values(**data.model_dump(exclude_none=True))
             .returning(self._model)
         )
@@ -96,6 +96,15 @@ class SQLAlchemyRefreshTokenRepository(AbstractSQLAlchemyRepository):
 
         try:
             await self._session.delete(token)
+            await self._session.flush()
+        except IntegrityError as exp:
+            logger.error(f"SQLAlchemyError IntegrityError: {str(exp)}")
+            raise ConstraintViolation(f"Constraint violation: {str(exp)}")
+
+    async def delete_by(self, *filter_, **filter_by_) -> None:
+        try:
+            del_stmt = delete(self._model).filter(*filter_).filter_by(**filter_by_)
+            await self._session.execute(del_stmt)
             await self._session.flush()
         except IntegrityError as exp:
             logger.error(f"SQLAlchemyError IntegrityError: {str(exp)}")

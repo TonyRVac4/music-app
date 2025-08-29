@@ -58,7 +58,6 @@ async def logout(
     payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
 ) -> None:
     await app.auth_service.delete_refresh_token(
-        user_id=payload.sub,
         jti=payload.jti,
     )
     logger.info(f"Authentication: User '{payload.sub}' logged out!")
@@ -73,21 +72,22 @@ async def logout(
 async def refresh_token(
     payload: Annotated[TokenDTO, Depends(get_current_refresh_token_payload)],
 ) -> dict[str, str]:
-    if await app.user_service.is_user_active(payload.sub):
+    if not await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
-    await app.auth_service.delete_expired_refresh_tokens(user_id=payload.sub)
+    await app.auth_service.delete_expired_refresh_tokens()
     await app.auth_service.check_refresh_token_exist(
-        user_id=payload.sub, jti=payload.jti
+        user_id=payload.sub, jti=payload.jti,
     )
 
     access_token: str = await app.auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
+    # с каждым refresh время может немного увеличиваться из-за ceil
     refresh_token: str = await app.auth_service.create_refresh_token(
         sub=payload.sub,
         expires_in_min=ceil((payload.exp - datetime.datetime.now().timestamp()) / 60),
     )
-    await app.auth_service.delete_refresh_token(user_id=payload.sub, jti=payload.jti)
+    await app.auth_service.delete_refresh_token(jti=payload.jti)
     await app.auth_service.add_refresh_token(
         user_id=payload.sub,
         jti=decode_jwt(refresh_token)["jti"],

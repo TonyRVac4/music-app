@@ -112,7 +112,7 @@ class AuthService:
     async def check_refresh_token_exist(self, user_id: str, jti: str) -> None:
         async with self.uow.execute() as datasource:
             token = await datasource.refresh_tokens.find_by(
-                user_id=user_id, token_id=jti,
+                user_id=user_id, jti=jti,
             )
             if not token:
                 logger.warning(
@@ -125,12 +125,12 @@ class AuthService:
     async def add_refresh_token(
         self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5,
     ):
-        await self.delete_expired_refresh_tokens(user_id)
+        await self.delete_expired_refresh_tokens()
 
         async with self.uow.begin() as datasource:
             new_token = RefreshTokenDTO(
+                jti=UUID(jti),
                 user_id=UUID(user_id),
-                token_id=jti,
                 expires_at=datetime.datetime.fromtimestamp(exp_data_stamp),
             )
             await datasource.refresh_tokens.create(new_token)
@@ -139,37 +139,17 @@ class AuthService:
             if len(user_tokens) > limit:
                 await datasource.refresh_tokens.delete(user_tokens[0].id)
 
-    async def delete_refresh_token(self, user_id: str, jti: str) -> None:
+    async def delete_refresh_token(self, jti: str) -> None:
         async with self.uow.begin() as datasource:
-            token = await datasource.refresh_tokens.find_by(
-                user_id=user_id, token_id=jti,
-            )
-            if token:
-                await datasource.refresh_tokens.delete(token.id)
+            await datasource.refresh_tokens.delete(jti)
 
-    async def delete_expired_refresh_tokens(self, user_id: str) -> None:
-        now = datetime.datetime.now(datetime.UTC)
-
+    async def delete_expired_refresh_tokens(self) -> None:
         async with self.uow.begin() as datasource:
-            tokens = await datasource.refresh_tokens.list_all(
-                SQLAlchemyRefreshTokenModel.expires_at <= now,
-                user_id=user_id,
+
+            await datasource.refresh_tokens.delete_by(
+                SQLAlchemyRefreshTokenModel.expires_at <= datetime.datetime.now(datetime.UTC)
             )
-            if tokens:
-                for token in tokens:
-                    try:
-                        await datasource.users.delete(token.id)
-                    except EntityNotFound:
-                        pass
 
     async def delete_all_refresh_tokens_by_user_id(self, user_id: str) -> None:
         async with self.uow.begin() as datasource:
-            tokens = await datasource.refresh_tokens.list_all(
-                user_id=user_id,
-            )
-            if tokens:
-                for token in tokens:
-                    try:
-                        await datasource.users.delete(token.id)
-                    except EntityNotFound:
-                        pass
+            await datasource.refresh_tokens.delete_by(user_id=user_id)
