@@ -109,29 +109,27 @@ class AuthService:
             f"Email verification: Code confirmed, account activated. | '{email}'"
         )
 
-    async def check_refresh_token_exist(self, user_id: str, jti: str) -> None:
+    async def check_refresh_token_exist(self, jti: str) -> None:
         async with self.uow.execute() as datasource:
-            token = await datasource.refresh_tokens.find_by(
-                user_id=user_id, jti=jti,
-            )
+            token = await datasource.refresh_tokens.find_by_id(jti)
             if not token:
                 logger.warning(
                     f"Authorization: "
                     f"Refresh token is valid but not in user active tokens!\n"
-                    f"User: '{user_id}', JTI: '{jti}'"
+                    f"JTI: '{jti}'"
                 )
                 raise HTTPExceptionInvalidToken
 
-    async def add_refresh_token(
-        self, user_id: str, jti: str, exp_data_stamp: int, limit: int = 5,
+    async def save_refresh_token(
+        self, user_id: str, jti: str, exp_date_stamp: int, limit: int = 5,
     ):
-        await self.delete_expired_refresh_tokens()
+        # await self.delete_expired_refresh_tokens()
 
         async with self.uow.begin() as datasource:
             new_token = RefreshTokenDTO(
                 jti=UUID(jti),
                 user_id=UUID(user_id),
-                expires_at=datetime.datetime.fromtimestamp(exp_data_stamp),
+                expires_at=datetime.datetime.fromtimestamp(exp_date_stamp),
             )
             await datasource.refresh_tokens.create(new_token)
 

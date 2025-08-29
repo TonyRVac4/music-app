@@ -41,9 +41,7 @@ async def get_current_refresh_token_payload(
         )
         raise HTTPExceptionInvalidToken
 
-    await app.auth_service.check_refresh_token_exist(
-        user_id=payload.sub, jti=payload.jti,
-    )
+    await app.auth_service.check_refresh_token_exist(jti=payload.jti)
     return payload
 
 

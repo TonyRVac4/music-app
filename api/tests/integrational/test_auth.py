@@ -220,7 +220,14 @@ class TestRefreshToken:
     async def test_cant_refresh_with_expired_refresh_token(
             self, user_client: AsyncClient, simple_user: UserDTO,
     ):
-        expired_refresh_token = await app.auth_service.create_refresh_token(simple_user.id)
+        expired_refresh_token = await app.auth_service.create_refresh_token(simple_user.id, expires_in_min=0)
+        decoded_expired_refresh_token = decode_jwt(expired_refresh_token)
+        await app.auth_service.save_refresh_token(
+            user_id=str(simple_user.id),
+            jti=decoded_expired_refresh_token["jti"],
+            exp_date_stamp=decoded_expired_refresh_token["exp"]
+        )
+        await asyncio.sleep(1)
 
         response = await user_client.post(
             "/api/v1/auth/refresh-token",

@@ -37,10 +37,10 @@ async def login(
     refresh_token: str = await app.auth_service.create_refresh_token(str(user.id))
 
     refresh_token_decoded: dict = decode_jwt(refresh_token)
-    await app.auth_service.add_refresh_token(
+    await app.auth_service.save_refresh_token(
         user_id=refresh_token_decoded["sub"],
         jti=refresh_token_decoded["jti"],
-        exp_data_stamp=refresh_token_decoded["exp"],
+        exp_date_stamp=refresh_token_decoded["exp"],
     )
 
     logger.info(f"Authorization: User '{user.id}' created a new pair of tokens.")
@@ -75,10 +75,7 @@ async def refresh_token(
     if not await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
-    await app.auth_service.delete_expired_refresh_tokens()
-    await app.auth_service.check_refresh_token_exist(
-        user_id=payload.sub, jti=payload.jti,
-    )
+    # await app.auth_service.delete_expired_refresh_tokens()
 
     access_token: str = await app.auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
@@ -88,10 +85,10 @@ async def refresh_token(
         expires_in_min=ceil((payload.exp - datetime.datetime.now().timestamp()) / 60),
     )
     await app.auth_service.delete_refresh_token(jti=payload.jti)
-    await app.auth_service.add_refresh_token(
+    await app.auth_service.save_refresh_token(
         user_id=payload.sub,
         jti=decode_jwt(refresh_token)["jti"],
-        exp_data_stamp=payload.exp,
+        exp_date_stamp=payload.exp,
     )
 
     logger.info(f"Authorization: User '{payload.sub}' created a new pair of tokens.")
