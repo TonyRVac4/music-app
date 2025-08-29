@@ -13,7 +13,7 @@ from api.src.domain.auth.dependencies import (
 )
 from api.src.domain.auth.utils import decode_jwt, check_permissions
 from api.src.domain.users.schemas import UserDTO
-from api.src.domain.auth.exceptions import HTTPExceptionInactiveUser
+from api.src.domain.auth.exceptions import HTTPExceptionInactiveUser, HTTPExceptionNoPermission
 
 from api.src.infrastructure.app import app
 
@@ -97,16 +97,17 @@ async def refresh_token(
 
 
 @router.post(
-    "/terminate-all-user-sessions/{user_id}",
+    "/terminate-all-sessions/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     description="Logs out user from all devices using access token. Can be used by admins.",
 )
-async def terminate_all_user_sessions(
+async def terminate_all_sessions(
     user_id: str,
     current_user: Annotated[UserDTO, Depends(get_current_auth_user_by_access)],
 ) -> None:
     target_user: UserDTO = await app.user_service.get_by_id(user_id=user_id)
-    check_permissions(current_user, target_user)
+    if not check_permissions(current_user, target_user):
+        raise HTTPExceptionNoPermission
     await app.auth_service.delete_all_refresh_tokens_by_user_id(user_id)
 
     logger.info(

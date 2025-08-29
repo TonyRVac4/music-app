@@ -15,6 +15,11 @@ async def get_refresh_token(jti: str) -> TokenDTO | None:
         return await uow.refresh_tokens.find_by_id(jti)
 
 
+async def get_list_of_tokens(user_id: str) -> list[TokenDTO]:
+    async with app.unit_of_work.execute() as uow:
+        return await uow.refresh_tokens.list_all(user_id=user_id)
+
+
 async def make_user_inactive(user_id: str) -> None:
     async with app.unit_of_work.begin() as uow:
         user = await uow.users.find_by_id(user_id)
@@ -129,7 +134,7 @@ class TestLogin:
 
 class TestLogout:
     async def test_logout(
-            self, user_client: AsyncClient, simple_user: UserDTO,
+            self, user_client: AsyncClient,
     ):
         refresh_token = user_client.cookies.get("refresh_token")
         refresh_token_id = decode_jwt(refresh_token)["jti"]
@@ -147,7 +152,7 @@ class TestLogout:
         assert token_after is None
 
     async def test_cant_logout_with_access_token(
-            self, user_client: AsyncClient, simple_user: UserDTO,
+            self, user_client: AsyncClient,
     ):
         refresh_token_id = decode_jwt(user_client.cookies.get("refresh_token"))["jti"]
 
@@ -166,13 +171,13 @@ class TestLogout:
 
 class TestRefreshToken:
     async def test_refresh_token(
-            self, user_client: AsyncClient, simple_user: UserDTO,
+            self, user_client: AsyncClient,
     ):
         old_access_token = user_client.cookies.get("access_token")
         old_refresh_token = user_client.cookies.get("refresh_token")
 
         # нужен для того чтобы refresh отличались
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
 
         response = await user_client.post(
             "/api/v1/auth/refresh-token",
@@ -207,7 +212,7 @@ class TestRefreshToken:
         assert new_refresh_in_db is not None
 
     async def test_cant_refresh_with_access_token(
-            self, user_client: AsyncClient, simple_user: UserDTO,
+            self, user_client: AsyncClient,
     ):
         old_access_token = user_client.cookies.get("access_token")
 
@@ -249,7 +254,7 @@ class TestRefreshToken:
         assert response.status_code == 403
 
     async def test_cant_refresh_if_refresh_token_not_in_db(
-            self, user_client: AsyncClient, simple_user: UserDTO,
+            self, user_client: AsyncClient,
     ):
         old_refresh_token = user_client.cookies.get("refresh_token")
         old_refresh_token_id = decode_jwt(old_refresh_token)["jti"]
@@ -267,3 +272,104 @@ class TestRefreshToken:
             headers={"Authorization": f"Bearer {old_refresh_token}"},
         )
         assert response.status_code == 401
+
+
+class TestTerminateAllSessions:
+    async def test_unauthenticated_user_cant_terminate_sessions(
+            self, client: AsyncClient, simple_user: UserDTO,
+    ):
+        response = await client.post(
+            f"/api/v1/auth/terminate-all-sessions/{simple_user.id}",
+        )
+        assert response.status_code == 401
+
+    async def test_user_terminate_all_self_sessions(
+            self, user_client: AsyncClient, simple_user: UserDTO,
+    ):
+        tokens_before = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_before) > 0
+
+        response = await user_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{simple_user.id}",
+        )
+        assert response.status_code == 204
+
+        tokens_after = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_after) == 0
+
+    async def test_admin_terminate_all_user_sessions(
+            self,
+            admin_client: AsyncClient,
+            user_client: AsyncClient,
+            simple_user: UserDTO,
+    ):
+        tokens_before = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_before) > 0
+
+        response = await admin_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{simple_user.id}",
+        )
+        assert response.status_code == 204
+
+        tokens_after = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_after) == 0
+
+    async def test_admin_terminate_all_self_sessions(
+            self, admin_client: AsyncClient, admin_user: UserDTO,
+    ):
+        tokens_before = await get_list_of_tokens(str(admin_user.id))
+        assert len(tokens_before) > 0
+
+        response = await admin_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{admin_user.id}",
+        )
+        assert response.status_code == 204
+
+        tokens_after = await get_list_of_tokens(str(admin_user.id))
+        assert len(tokens_after) == 0
+
+    async def test_admin_cant_terminate_all_superadmin_sessions(
+            self, admin_client: AsyncClient, superadmin_user: UserDTO,
+    ):
+        response = await admin_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{superadmin_user.id}",
+        )
+        assert response.status_code == 403
+
+    async def test_superadmin_terminate_all_user_sessions(
+            self,
+            superadmin_client: AsyncClient,
+            user_client: AsyncClient,
+            simple_user: UserDTO,
+    ):
+        tokens_before = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_before) > 0
+
+        response = await superadmin_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{simple_user.id}",
+        )
+        assert response.status_code == 204
+
+        tokens_after = await get_list_of_tokens(str(simple_user.id))
+        assert len(tokens_after) == 0
+
+    async def test_superadmin_terminate_all_admin_sessions(
+            self,
+            superadmin_client: AsyncClient,
+            admin_client: AsyncClient,
+            admin_user: UserDTO,
+    ):
+        tokens_before = await get_list_of_tokens(str(admin_user.id))
+        assert len(tokens_before) > 0
+
+        response = await superadmin_client.post(
+            f"/api/v1/auth/terminate-all-sessions/{admin_user.id}",
+        )
+        assert response.status_code == 204
+
+        tokens_after = await get_list_of_tokens(str(admin_user.id))
+        assert len(tokens_after) == 0
+
+
+# class TestEmailVerification:
+#     ...
