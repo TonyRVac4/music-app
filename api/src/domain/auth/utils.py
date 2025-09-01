@@ -65,6 +65,8 @@ def send_email(to_email: str, message: str) -> None:
             from_addr=settings.email_client.email, to_addrs=to_email, msg=m.as_string(),
         )
 
+    logger.info(f"Email verification: Code sent! Email: '{email}'")
+
 
 def validate_token_type(token_type: str, target_type: str) -> bool:
     if target_type == token_type:

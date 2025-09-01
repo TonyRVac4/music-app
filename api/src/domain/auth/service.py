@@ -78,14 +78,27 @@ class AuthService:
         }
         return create_jwt(payload, token_type, expires_in_min)
 
-    async def send_verification_code(self, email: str, background_task) -> None:
-        code = str(uuid4())
-        async with self._redis_client() as client:
-            await client.set(email, code, ex=600)
+    @staticmethod
+    async def get_verification_link(email: str, code: str) -> str:
+        url = "http://{host}:{port}/api/v1/auth/verify-email?email={email}&code={code}".format(
+            host=settings.app.host,
+            port=settings.app.port,
+            email=email,
+            code=code,
+        )
+        return url
 
-        url = settings.app.get_verification_link(email, code)
-        background_task.add_task(send_email, email, url)
-        logger.info(f"Email verification: Code sent! Email: '{email}'")
+    async def set_verification_code(self, email: str) -> str:
+        # creates operation in redis
+        code = str(uuid4())
+
+        async with self._redis_client() as client:
+            await client.set(
+                email,
+                code,
+                ex=settings.app.verification_code_ttl_seconds,
+            )
+        return code
 
     async def confirm_verification_code(self, email: str, code: str) -> None:
         async with self._redis_client() as client:

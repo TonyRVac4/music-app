@@ -108,16 +108,7 @@ class AppSettings:
     video_duration_constraint: float = all_settings.VIDEO_DURATION_CONSTRAINT
     host: str = all_settings.APP_HOST
     port: int = all_settings.APP_PORT
-
-    @classmethod
-    def get_verification_link(cls, email, code) -> str:
-        # move somewhere else
-        return "http://{host}:{port}/api/v1/auth/verify-email?email={email}&code={code}".format(
-            host=cls.host,
-            port=cls.port,
-            email=email,
-            code=code,
-        )
+    verification_code_ttl_seconds: int = 600
 
 
 class Settings:
