@@ -38,7 +38,7 @@ class AppContainer:
     @asynccontextmanager
     async def async_redis_client(self) -> AsyncGenerator[Redis, None]:
         """note: при необходимости можно размножить данный метод для подключения к разным базам"""
-        async with Redis.from_url(settings.redis.url) as client:
+        async with Redis.from_url(settings.redis.app_url) as client:
             yield client
 
     @cached_property

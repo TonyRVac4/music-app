@@ -16,7 +16,8 @@ class AllSettings(BaseSettings):
 
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
-    REDIS_DB_NUM: str = 0
+    REDIS_APP_DB_NUM: int = 0
+    REDIS_CELERY_NUM: int = 1
 
     S3_HOST: str = "s3"
     S3_PORT: int = 9000
@@ -44,10 +45,6 @@ class AllSettings(BaseSettings):
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     @property
-    def redis_db_url(self) -> str:
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB_NUM}?decode_responses=True"
-
-    @property
     def s3_config_dict(self) -> dict:
         return {
             "endpoint_url": f"http://{self.S3_HOST}:{self.S3_PORT}",
@@ -55,6 +52,9 @@ class AllSettings(BaseSettings):
             "secret_key": self.S3_SECRET_KEY,
             "bucket_name": self.BUCKET_NAME,
         }
+
+    def redis_url(self, db_num: int) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{db_num}"
 
     model_config = SettingsConfigDict(
         env_file=env_file_path,
@@ -76,8 +76,11 @@ class PostgresSettings:
 class RedisSettings:
     host: str = all_settings.REDIS_HOST
     port: str = all_settings.REDIS_PORT
-    db_num: str = all_settings.REDIS_DB_NUM
-    url: str = all_settings.redis_db_url
+    app_db_num: int = all_settings.REDIS_APP_DB_NUM
+    celery_num: int = all_settings.REDIS_CELERY_NUM
+
+    app_url: str = all_settings.redis_url(app_db_num)
+    broker_url: str = all_settings.redis_url(celery_num)
 
 
 class S3Settings:
