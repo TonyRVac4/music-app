@@ -1,8 +1,10 @@
 import logging
 import datetime
 from uuid import uuid4, UUID
-
+from typing import Callable, AsyncContextManager
 from sqlalchemy import or_
+
+from redis import Redis
 
 from api.src.domain.auth.exceptions import (
     HTTPExceptionInvalidToken,
@@ -28,7 +30,7 @@ class AuthService:
     def __init__(
         self,
         unit_of_work: AbstractUnitOfWork[AbstractUnitDataSource],
-        redis_client,
+        redis_client: Callable[..., AsyncContextManager[Redis]],
     ):
         self.uow = unit_of_work
         self._redis_client = redis_client

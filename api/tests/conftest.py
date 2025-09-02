@@ -3,10 +3,26 @@ from httpx import ASGITransport, AsyncClient
 
 from api.src.main import app
 from api.src.infrastructure.app import app as app_container
+from api.src.infrastructure.settings import settings
 from api.src.infrastructure.database.enums import Roles
 from api.src.infrastructure.database.models import Base
 from api.src.domain.users.schemas import UserDTO
 from api.src.domain.auth.utils import get_password_hash
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def flush_redis():
+    async with app_container.async_redis_client(settings.redis.app_url) as conn:
+        await conn.flushdb()
+    async with app_container.async_redis_client(settings.redis.broker_url) as conn:
+        await conn.flushdb()
+
+    yield
+
+    async with app_container.async_redis_client(settings.redis.app_url) as conn:
+        await conn.flushdb()
+    async with app_container.async_redis_client(settings.redis.broker_url) as conn:
+        await conn.flushdb()
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -18,9 +34,6 @@ async def setup_database():
 
     async with app_container._sqlalchemy_async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-
-    async with app_container.async_redis_client() as conn:
-        await conn.flushdb()
 
 
 @pytest.fixture

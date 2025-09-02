@@ -10,3 +10,6 @@ docker run \
    -e "MINIO_ROOT_PASSWORD=password" \
    quay.io/minio/minio server /data --console-address ":9001"
 # s3 with GUI on 9001
+
+celery -A api.src.celery_app flower
+celery -A api.src.celery_app worker

@@ -1,6 +1,6 @@
 from functools import cached_property
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from contextlib import asynccontextmanager, _AsyncGeneratorContextManager
+from typing import AsyncGenerator, AsyncContextManager, Callable, Any
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -35,10 +35,27 @@ class AppContainer:
             expire_on_commit=False,
         )
 
+    @staticmethod
     @asynccontextmanager
-    async def async_redis_client(self) -> AsyncGenerator[Redis, None]:
-        """note: при необходимости можно размножить данный метод для подключения к разным базам"""
-        async with Redis.from_url(settings.redis.app_url) as client:
+    async def async_redis_client(url: str = settings.redis.app_url) -> AsyncGenerator[Redis, None]:
+        """
+        Async context manager for creating a temporary Redis client.
+
+        Args:
+            url (str): Redis connection URL. Defaults to ``settings.redis.app_url``.
+
+        Yields:
+            Redis: An active Redis client instance.
+
+        Notes:
+            - Opens a new connection for each context usage.
+            - Ensures the connection is closed when the context exits.
+
+        Example:
+            async with RedisClientFactory.async_redis_client() as client:
+                await client.set("foo", "bar")
+        """
+        async with Redis.from_url(url) as client:
             yield client
 
     @cached_property

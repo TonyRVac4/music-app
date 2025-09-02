@@ -1,5 +1,7 @@
 from uuid import uuid4
+from typing import Callable, AsyncContextManager
 
+from redis import Redis
 from fastapi.concurrency import run_in_threadpool
 
 from api.src.domain.music.utils import (
@@ -21,7 +23,7 @@ class YoutubeService:
     def __init__(
         self,
         s3_client: S3Client,
-        redis_client,
+        redis_client: Callable[..., AsyncContextManager[Redis]],
     ):
         self._s3_client = s3_client
         self._redis_client = redis_client
