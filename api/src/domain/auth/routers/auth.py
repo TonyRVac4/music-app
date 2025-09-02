@@ -75,8 +75,6 @@ async def refresh_token(
     if not await app.user_service.is_user_active(payload.sub):
         raise HTTPExceptionInactiveUser
 
-    # await app.auth_service.delete_expired_refresh_tokens()
-
     access_token: str = await app.auth_service.create_access_token(payload.sub)
     # время инвалидации refresh остается прежним (пользователь должен будет снова залогинится через 30 дней)
     # с каждым refresh время может немного увеличиваться из-за ceil

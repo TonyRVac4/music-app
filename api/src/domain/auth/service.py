@@ -14,11 +14,11 @@ from api.src.domain.auth.exceptions import (
 )
 from api.src.domain.users.models import SQLAlchemyUserModel
 from api.src.domain.users.schemas import UserDataResponse
-from api.src.domain.auth.utils import verify_password_hash, create_jwt, send_email
+from api.src.domain.auth.utils import verify_password_hash, create_jwt
 from api.src.infrastructure.dal.datasource import AbstractUnitDataSource
 from api.src.infrastructure.dal.uow import AbstractUnitOfWork
 from api.src.infrastructure.settings import settings
-from api.src.infrastructure.database.exceptions import EntityNotFound
+
 from .schemas import RefreshTokenDTO
 from .models import SQLAlchemyRefreshTokenModel
 

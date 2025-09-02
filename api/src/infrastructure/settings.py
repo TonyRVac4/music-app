@@ -41,10 +41,6 @@ class AllSettings(BaseSettings):
     VIDEO_DURATION_CONSTRAINT: float = 16.0
 
     @property
-    def asyncpg_db_url(self) -> str:
-        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-
-    @property
     def s3_config_dict(self) -> dict:
         return {
             "endpoint_url": f"http://{self.S3_HOST}:{self.S3_PORT}",
@@ -70,7 +66,8 @@ class PostgresSettings:
     host: str = all_settings.DB_HOST
     port: str = all_settings.DB_PORT
     db_name: str = all_settings.DB_NAME
-    url: str = all_settings.asyncpg_db_url
+
+    url: str = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{db_name}"
 
 
 class RedisSettings:
