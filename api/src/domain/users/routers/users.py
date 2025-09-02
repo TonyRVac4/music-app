@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status
 
 from api.src.domain.users.schemas import (
     UserUpdateRequest,
@@ -12,7 +12,7 @@ from api.src.domain.users.schemas import (
 from api.src.domain.dependencies import get_current_active_user
 from api.src.domain.users.exceptions import HTTPExceptionUserNotFound
 from api.src.domain.auth.exceptions import HTTPExceptionNoPermission
-from api.src.domain.auth.utils import send_email
+# from api.src.domain.auth.tasks import send_email
 from api.src.infrastructure.database.enums import Roles
 from api.src.domain.auth.utils import check_permissions
 from api.src.infrastructure.app import app
@@ -29,13 +29,12 @@ router = APIRouter(prefix="/users", tags=["User"])
 )
 async def create_user(
     new_user: UserCreateRequest,
-    # background_tasks: BackgroundTasks,
 ) -> UserDTO:
     new_user = await app.user_service.create(new_user)
 
     # verification_code = await app.auth_service.set_verification_code(new_user.email)
     # verification_link = await app.auth_service.get_verification_link(new_user.email, verification_code)
-    # background_tasks.add_task(send_email, new_user.email, verification_link)
+    # send_email.delay(new_user.email, verification_link)
 
     return new_user
 

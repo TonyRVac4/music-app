@@ -13,3 +13,4 @@ docker run \
 
 celery -A api.src.celery_app flower
 celery -A api.src.celery_app worker
+celery -A api.src.celery_app beat

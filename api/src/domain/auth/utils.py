@@ -1,6 +1,4 @@
-import email
 import logging
-import smtplib
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -47,25 +45,6 @@ def create_jwt(payload: dict, token_type: str, expires_minutes: int) -> str:
     return jwt.encode(
         payload, key=settings.auth.jwt_key, algorithm=settings.auth.jwt_algorithm,
     )
-
-
-def send_email(to_email: str, message: str) -> None:
-    with smtplib.SMTP("smtp.gmail.com", 587) as smtpObj:
-        smtpObj.starttls()
-        smtpObj.login(
-            user=settings.email_client.email, password=settings.email_client.password,
-        )
-        m = email.message.Message()
-        m["From"] = settings.email_client.email
-        m["To"] = to_email
-        m["Subject"] = "Music App email verification."
-
-        m.set_payload(message)
-        smtpObj.sendmail(
-            from_addr=settings.email_client.email, to_addrs=to_email, msg=m.as_string(),
-        )
-
-    logger.info(f"Email verification: Code sent! Email: '{email}'")
 
 
 def validate_token_type(token_type: str, target_type: str) -> bool:

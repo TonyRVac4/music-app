@@ -3,7 +3,7 @@ import datetime
 from math import ceil
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, BackgroundTasks
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from api.src.domain.auth.schemas import TokenInfoResponse, TokenDTO
@@ -14,6 +14,7 @@ from api.src.domain.auth.dependencies import (
 from api.src.domain.auth.utils import decode_jwt, check_permissions
 from api.src.domain.users.schemas import UserDTO
 from api.src.domain.auth.exceptions import HTTPExceptionInactiveUser, HTTPExceptionNoPermission
+# from api.src.domain.auth.tasks import send_email
 
 from api.src.infrastructure.app import app
 
@@ -120,12 +121,12 @@ async def terminate_all_sessions(
     "/send-email-verification-code",
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def send_email_verification_code(
-    email: str,
-    background_tasks: BackgroundTasks,
-) -> None:
+async def send_email_verification_code(email: str) -> None:
     await app.user_service.check_user_exist_by_email_and_is_not_verified(email=email)
-    await app.auth_service.send_verification_code(email, background_tasks)
+
+    # verification_code = await app.auth_service.set_verification_code(email)
+    # verification_link = await app.auth_service.get_verification_link(email, verification_code)
+    # send_email.delay(email, verification_link)
 
 
 @router.get(
