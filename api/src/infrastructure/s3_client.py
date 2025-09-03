@@ -1,11 +1,13 @@
+from io import BytesIO
 from contextlib import asynccontextmanager
 
 import aioboto3
+import boto3
 from botocore.exceptions import ClientError
-from io import BytesIO
+import botocore.config
 
 
-class S3Client:
+class AsyncS3Client:
     def __init__(
         self,
         endpoint_url: str,
@@ -19,6 +21,7 @@ class S3Client:
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
             "region_name": "us-east-1",
+            "proxies": {}, # needs when proxy is used
         }
         self._session = aioboto3.Session()
         self.bucket_name = bucket_name
@@ -58,10 +61,52 @@ class S3Client:
             except ClientError as err:
                 print(err)
 
-    def delete(self): ...
 
-    def delete_bulk(self): ...
+class S3Client:
+    def __init__(
+        self,
+        endpoint_url: str,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+    ):
+        self._session = boto3.session.Session()
+        self.client = self._session.client(
+            service_name="s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            region_name="us-east-1",
+            config=botocore.config.Config(proxies={}), # needs when proxy is used
+        )
+        self.bucket_name = bucket_name
 
+    def check(self, file_name: str) -> bool:
+        try:
+            self.client.head_object(Bucket=self.bucket_name, Key=file_name)
+            return True
+        except ClientError:
+            return False
+
+    def get_link(self, file_name: str, expires_in: int = 600) -> str | None:
+        try:
+            return self.client.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": self.bucket_name, "Key": file_name},
+                ExpiresIn=expires_in,
+            )
+        except ClientError:
+            return None
+
+    def upload(self, file_obj: BytesIO, filename: str) -> None:
+        try:
+            self.client.upload_fileobj(
+                Fileobj=file_obj,
+                Bucket=self.bucket_name,
+                Key=filename,
+            )
+        except ClientError as err:
+            raise
 
 # # Создание bucket
 # await s3.create_bucket(Bucket=BUCKET)

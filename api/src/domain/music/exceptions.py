@@ -8,7 +8,7 @@ HTTPExceptionOperationNotFound = HTTPException(
 )
 
 HTTPExceptionFileNotReady = HTTPException(
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_200_OK,
     detail="File is not ready yet!",
 )
 

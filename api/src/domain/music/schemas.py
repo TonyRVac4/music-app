@@ -2,7 +2,7 @@ from io import BytesIO
 from pydantic import BaseModel, ConfigDict
 
 
-class FileInfoOut(BaseModel):
+class FileInfoResponse(BaseModel):
     title: str
     filename: str
     duration: float

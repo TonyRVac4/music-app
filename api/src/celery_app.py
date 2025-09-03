@@ -12,7 +12,7 @@ app.conf.update(
     task_serializer="json",
     accept_content=["json"],  # Ignore other content
     result_serializer="json",
-    result_expires=900, # result TTL 15 min
+    result_expires=600, # result TTL 10 min
     timezone="UTC",
     enable_utc=True,
 )

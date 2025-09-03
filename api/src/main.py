@@ -2,17 +2,15 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.src.domain.auth.routers.auth import router as auth_router
 from api.src.domain.users.routers.users import router as users_router
 from api.src.domain.music.routers.youtube_download import router as music_router
-
+from api.src.domain.exceptions import HTTPExceptionInternalServerError
 from api.src.infrastructure.logger import configure_logger
 from api.src.infrastructure.settings import settings
-
 
 configure_logger()
 logger = logging.getLogger("my_app")
@@ -41,12 +39,7 @@ app.include_router(music_router)
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
     logger.error(f"SQLAlchemy Error: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "message": "Something went wrong! Developers has already been notified and will fix this asap!"
-        },
-    )
+    raise HTTPExceptionInternalServerError
 
 
 if __name__ == "__main__":

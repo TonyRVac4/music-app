@@ -13,7 +13,7 @@ from api.src.infrastructure.settings import settings
 def setup_periodic_tasks(sender, **kwargs):
     # Executes every Sunday morning at 1:00 a.m. UTC
     sender.add_periodic_task(
-        crontab(hour=1, minute=0, day_of_week=7),
+        crontab(hour=1, minute=0, day_of_week=0),
         delete_expired_tokens.s(),
         name="delete_expired_tokens",
     )
