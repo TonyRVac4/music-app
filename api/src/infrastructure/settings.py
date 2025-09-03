@@ -35,10 +35,12 @@ class AllSettings(BaseSettings):
 
     APP_EMAIL: str
     APP_EMAIL_PASSWORD: str
-    APP_HOST: str
-    APP_PORT: int
+    APP_HOST: str = "localhost"
+    APP_PORT: int = "8341"
 
-    VIDEO_DURATION_CONSTRAINT: float = 16.0
+    VIDEO_DURATION_CONSTRAINT: float = 16
+    YOUTUBE_API_KEY: str
+    YOUTUBE_VISITOR_INFO1_LIVE: str
 
     @property
     def s3_config_dict(self) -> dict:
@@ -105,10 +107,15 @@ class EmailClientSettings:
 
 
 class AppSettings:
-    video_duration_constraint: float = all_settings.VIDEO_DURATION_CONSTRAINT
     host: str = all_settings.APP_HOST
     port: int = all_settings.APP_PORT
     verification_code_ttl_seconds: int = 600
+
+
+class YouTubeSettings:
+    video_duration_constraint: float = all_settings.VIDEO_DURATION_CONSTRAINT
+    api_key: str = all_settings.YOUTUBE_API_KEY
+    visitor_info1_live: str = all_settings.YOUTUBE_VISITOR_INFO1_LIVE
 
 
 class Settings:
@@ -118,6 +125,7 @@ class Settings:
     auth = AuthSettings()
     email_client = EmailClientSettings()
     app = AppSettings()
+    youtube = YouTubeSettings()
 
 
 settings = Settings()

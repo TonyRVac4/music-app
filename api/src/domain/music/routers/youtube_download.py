@@ -1,12 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, BackgroundTasks, status, Query
+from fastapi import APIRouter, status, Query
 
-from api.src.domain.music.schemas import FileInfoOut, OperationId
-
-# from api.src.dependencies.auth_deps import get_current_active_user
-# from api.src.users.schemas import BaseUserInfo
+from api.src.domain.music.schemas import FileInfoResponse, OperationId
 from api.src.infrastructure.app import app
+from api.src.domain.music.tasks import download_audio
 
 
 router = APIRouter(prefix="/youtube", tags=["Youtube"])
@@ -19,24 +17,20 @@ router = APIRouter(prefix="/youtube", tags=["Youtube"])
 )
 async def start_downloading(
     url: Annotated[str, Query(pattern="^https://www.youtube.com/watch")],
-    background_tasks: BackgroundTasks,
-    # user: Annotated[BaseUserInfo, Depends(get_current_active_user)],
-) -> OperationId:
-    operation_id: str = await app.yt_service.create_operation()
-    background_tasks.add_task(app.yt_service.download_audio, url, operation_id)
-    return {"operation_id": operation_id}
+) -> dict:
+    task = download_audio.delay(url)
+    return {"operation_id": task.id}
 
 
 @router.get(
     "/download",
     status_code=status.HTTP_200_OK,
-    response_model=FileInfoOut,
+    response_model=FileInfoResponse,
 )
-async def get_check_downloaded_file(
+async def get_downloaded_file(
     operation_id: str,
-    # user: Annotated[BaseUserInfo, Depends(get_current_active_user)],
-) -> FileInfoOut:
-    return await app.yt_service.get_operation(operation_id)
+) -> dict:
+    return await app.youtube_service.get_operation(operation_id)
 
 
 # @router.post("/save")
