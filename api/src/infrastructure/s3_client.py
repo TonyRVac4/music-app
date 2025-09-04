@@ -21,7 +21,7 @@ class AsyncS3Client:
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
             "region_name": "us-east-1",
-            "proxies": {}, # needs when proxy is used
+            "proxies": {},  # needs when system proxy is used
         }
         self._session = aioboto3.Session()
         self.bucket_name = bucket_name
@@ -77,7 +77,7 @@ class S3Client:
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name="us-east-1",
-            config=botocore.config.Config(proxies={}), # needs when proxy is used
+            config=botocore.config.Config(proxies={}),  # needs when system proxy is used
         )
         self.bucket_name = bucket_name
 

@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 class FileInfoResponse(BaseModel):
     title: str
     filename: str
-    duration: float
+    duration: str
     link: str
 
 

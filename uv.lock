@@ -833,6 +833,7 @@ dependencies = [
     { name = "pip-system-certs" },
     { name = "pydantic", extra = ["email"] },
     { name = "pydantic-settings" },
+    { name = "pysocks" },
     { name = "python-jose" },
     { name = "python-multipart" },
     { name = "redis", extra = ["hiredis"] },
@@ -870,13 +871,14 @@ requires-dist = [
     { name = "pip-system-certs", specifier = ">=5.2,<6.0" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.11.7,<3.0.0" },
     { name = "pydantic-settings", specifier = ">=2.9.1,<3.0.0" },
+    { name = "pysocks", specifier = ">=1.7.1" },
     { name = "python-jose", specifier = ">=3.5.0,<4.0.0" },
     { name = "python-multipart", specifier = ">=0.0.20,<0.0.21" },
     { name = "redis", extras = ["hiredis"], specifier = ">=6.2.0,<7.0.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.41,<3.0.0" },
     { name = "types-aiobotocore-s3", specifier = ">=2.23.0,<3.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.3,<0.35.0" },
-    { name = "yt-dlp", extras = ["nightly"], specifier = ">=2025.6.30,<2026.0.0" },
+    { name = "yt-dlp", extras = ["nightly"], specifier = "==2025.8.30.232839.dev0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1140,6 +1142,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload-time = "2025-06-21T13:39:12.283Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload-time = "2025-06-21T13:39:07.939Z" },
+]
+
+[[package]]
+name = "pysocks"
+version = "1.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/11/293dd436aea955d45fc4e8a35b6ae7270f5b8e00b53cf6c024c83b657a11/PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0", size = 284429, upload-time = "2019-09-20T02:07:35.714Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/59/b4572118e098ac8e46e399a1dd0f2d85403ce8bbaad9ec79373ed6badaf9/PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5", size = 16725, upload-time = "2019-09-20T02:06:22.938Z" },
 ]
 
 [[package]]
@@ -1713,9 +1724,9 @@ wheels = [
 
 [[package]]
 name = "yt-dlp"
-version = "2025.7.21"
+version = "2025.8.30.232839.dev0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7e/3a/343f7a0024ddd4c30f150e8d8f57fd7b924846f97d99fc0dcd75ea8d2773/yt_dlp-2025.7.21.tar.gz", hash = "sha256:46fbb53eab1afbe184c45b4c17e9a6eba614be680e4c09de58b782629d0d7f43", size = 3050219, upload-time = "2025-07-21T23:59:03.826Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/40/1908efd273c7b53a7a0338e208356284a19c981a2c571feff7fbdead7e5a/yt_dlp-2025.8.30.232839.dev0.tar.gz", hash = "sha256:88cb303f0eb7a56c47223558369f8692dd64d9b01dc4bfa0502421f76c8b7e53", size = 3043201, upload-time = "2025-08-30T23:35:39.941Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/2f/abe59a3204c749fed494849ea29176bcefa186ec8898def9e43f649ddbcf/yt_dlp-2025.7.21-py3-none-any.whl", hash = "sha256:d7aa2b53f9b2f35453346360f41811a0dad1e956e70b35a4ae95039d4d815d15", size = 3288681, upload-time = "2025-07-21T23:59:01.788Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/5e/f683ef8eee7cc2f20ab0f2fa70d0f8893d6be0d93bd4d46c9c46211e9d89/yt_dlp-2025.8.30.232839.dev0-py3-none-any.whl", hash = "sha256:a4fba43d5c968f55aaa6a2de0896fbea1ed50b304819cc732b446daa6c3c7bcc", size = 3272414, upload-time = "2025-08-30T23:35:36.796Z" },
 ]

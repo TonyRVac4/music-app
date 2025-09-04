@@ -5,7 +5,7 @@ from api.src.infrastructure.settings import settings
 app = Celery(
     "music-app",
     broker=settings.redis.broker_url,
-    backend=settings.redis.broker_url,
+    # backend=settings.redis.broker_url,
 )
 
 app.conf.update(

@@ -9,6 +9,8 @@ from api.src.domain.music.schemas import FileDTO
 from api.src.infrastructure.settings import settings
 
 
+DEFAULT_YTDLP_PROXY = "socks5h://127.0.0.1:12334"
+
 download_dir = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
     "youtube_downloads"
@@ -31,6 +33,8 @@ def convert_str_duration_to_float(duration: str) -> float:
 
 
 def download_audio_from_youtube(url: str) -> FileDTO:
+    PROXY_LOCAL = os.environ.get("YTDLP_PROXY", os.environ.get("ALL_PROXY", DEFAULT_YTDLP_PROXY))
+
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -44,6 +48,9 @@ def download_audio_from_youtube(url: str) -> FileDTO:
                 "preferredquality": "0",  # 0 лучшее качество
             }
         ],
+        "proxy": PROXY_LOCAL,
+        "socket_timeout": 60,
+        "retries": 3,
         'extractor_args': {
             'youtube': {
                 'player_skip': ['configs', 'webpage'],
@@ -60,15 +67,22 @@ def download_audio_from_youtube(url: str) -> FileDTO:
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(url, download=True)
-            time.sleep(5)
-        except yt_dlp.utils.DownloadError as e:
-            print(f"Ошибка загрузки: {e}")
-            return None
+        max_retries = 5
+        while max_retries != 0:
+            try:
+                info = ydl.extract_info(url, download=True)
+                break
+            except yt_dlp.utils.DownloadError as e:
+                time.sleep(2)
+                max_retries -= 1
+                if max_retries == 0:
+                    raise
 
-    time.sleep(2)
     local_file_path = os.path.join(download_dir, f"{info['id']}.m4a")
+
+    while not os.path.exists(local_file_path):
+        time.sleep(2)
+
     with open(local_file_path, "rb") as file:
         audio_data = BytesIO(file.read())
     audio_data.seek(0)
@@ -83,11 +97,16 @@ def download_audio_from_youtube(url: str) -> FileDTO:
 
 
 def get_audio_data_from_youtube(url: str) -> FileDTO:
+    PROXY_LOCAL = os.environ.get("YTDLP_PROXY", os.environ.get("ALL_PROXY", DEFAULT_YTDLP_PROXY))
+
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
+        "proxy": PROXY_LOCAL,
+        "socket_timeout": 60,
+        "retries": 3,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -100,3 +119,30 @@ def get_audio_data_from_youtube(url: str) -> FileDTO:
         ),
         duration=convert_str_duration_to_float(info["duration_string"]),
     )
+
+# def bulk_download_audio_from_youtube(url: str) -> FileDTO:
+#     ydl_opts = {
+#         'noplaylist': True,
+#         'format': 'bestaudio/best',
+#         'outtmpl': '%(title)s.%(ext)s',
+#         'postprocessors': [{
+#             'key': 'FFmpegExtractAudio',
+#             'preferredcodec': 'm4a',  # или 'mp3', 'opus', 'wav'
+#             'preferredquality': '0',  # 0 = лучшее качество
+#         }],
+#         # works on 21.08.2025
+#         'quiet': False,
+#         'no_warnings': False,
+#     }
+#
+#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#         try:
+#             info = ydl.extract_info(url, download=True)
+#         except yt_dlp.utils.DownloadError as e:
+#             print(f"Ошибка загрузки: {e}")
+#             return None
+
+
+# urls = []
+# for url in urls:
+#     bulk_download_audio_from_youtube(url)

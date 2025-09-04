@@ -52,7 +52,7 @@ class AppContainer:
             - Opens a new connection for each context usage.
             - Ensures the connection is closed when the context exits.
         """
-        async with AsyncRedis.from_url(url) as client:
+        async with AsyncRedis.from_url(url, decode_responses=True) as client:
             yield client
 
     @staticmethod
